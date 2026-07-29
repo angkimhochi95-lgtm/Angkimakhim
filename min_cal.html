@@ -58,6 +58,26 @@
         /* 완료된 일정 */
         .fc-event.event-completed { opacity: 0.4; text-decoration: line-through; }
 
+        /* 일정 제목 툴팁 (마우스 오버시 전체 제목 표시) */
+        .event-tooltip { position: absolute; z-index: 100000; background: #2c3e50; color: #fff; padding: 7px 11px; border-radius: 7px; font-size: 12.5px; max-width: 260px; box-shadow: 0 4px 14px rgba(0,0,0,.28); pointer-events: none; white-space: normal; word-break: break-word; line-height: 1.4; }
+
+        /* 이벤트 내부 커스텀 렌더링 (제목 + 링크 아이콘) */
+        .fc-event-main-custom { display: flex; align-items: center; gap: 4px; overflow: hidden; width: 100%; }
+        .fc-event-title-custom { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; }
+        .event-link-icon { flex-shrink: 0; font-size: 11px; text-decoration: none; opacity: 0.85; }
+        .event-link-icon:hover { opacity: 1; }
+
+        /* 같은 날 일정 초과시 뜨는 팝오버 스타일 */
+        .fc-popover { border-radius: 10px !important; border: none !important; box-shadow: 0 8px 26px rgba(0,0,0,.2) !important; overflow: hidden; }
+        .fc-popover-header { background: #2c3e50 !important; color: #fff !important; padding: 8px 10px !important; }
+        .fc-popover-title { font-weight: 700 !important; font-size: 13px !important; }
+        .fc-popover-close { color: #fff !important; opacity: 0.8; }
+
+        /* 플로팅 일정 추가 버튼 */
+        #fab-add-event { position: fixed; bottom: 26px; right: 26px; width: 56px; height: 56px; border-radius: 50%; background: #4a90e2; color: #fff; font-size: 30px; border: none; box-shadow: 0 6px 18px rgba(74,144,226,.4); cursor: pointer; z-index: 800; display: flex; align-items: center; justify-content: center; line-height: 1; transition: transform .15s, background .15s; }
+        #fab-add-event:hover { background: #3a7bd5; transform: scale(1.06); }
+        @media (max-width: 768px) { #fab-add-event { width: 52px; height: 52px; font-size: 27px; bottom: 18px; right: 18px; } }
+
         /* 비밀번호 게이트 */
         #password-gate { position: fixed; inset: 0; background: #1c2530; display: flex; align-items: center; justify-content: center; z-index: 99999; }
         .pw-box { background: #fff; border-radius: 14px; padding: 32px 28px; width: 300px; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,.3); }
@@ -200,6 +220,7 @@
         </div>
         <div class="form-row" id="repeatUntilRow" style="display:none;"><label>반복 종료일</label><input type="date" id="eventRepeatUntil"></div>
         <div class="form-row"><label></label><label style="display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer;padding:5px 0;"><input type="checkbox" id="eventCompleted" style="width:18px;height:18px;"> ✅ 완료된 일정으로 표시</label></div>
+        <div class="form-row"><label>링크(URL)</label><input type="url" id="eventLink" placeholder="https://... (선택)"></div>
         <div class="form-row" id="customColorRow"><label>색상</label><input type="color" id="eventColor" value="#3498db"></div>
         <div class="modal-ft">
             <button class="btn btn-danger" id="btnDelete" style="display:none; flex:none; width:100px;" onclick="deleteEvent()">삭제</button>
@@ -229,6 +250,7 @@
 
 <div id="holiday-toast"></div>
 <div id="notif-toast"></div>
+<button id="fab-add-event" style="display:none;" onclick="openAddModalForToday()" title="빠른 일정 추가">+</button>
 
 <script>
 let calendar;
@@ -257,6 +279,7 @@ function checkGatePassword() {
 function unlockApp() {
     document.getElementById('password-gate').style.display = 'none';
     document.getElementById('app-wrapper').style.display = 'flex';
+    document.getElementById('fab-add-event').style.display = 'flex';
     initCalendarApp();
 }
 
@@ -436,6 +459,45 @@ function renderEventModal() {
 function openModal(id) { document.getElementById(id).classList.add('open'); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); if (id === 'eventModal') { calendar && calendar.unselect(); } }
 function toggleTimeInputs() { const allDay = document.getElementById('eventAllDay').checked; document.getElementById('eventStartTime').disabled = allDay; document.getElementById('eventEndTime').disabled = allDay; document.getElementById('eventStartTime').style.opacity = allDay ? '0.5' : '1'; document.getElementById('eventEndTime').style.opacity = allDay ? '0.5' : '1'; }
+
+// 날짜 탭/FAB 버튼으로 빠르게 일정 추가할 때 쓰는 공용 함수 (모바일 대응)
+function openNewEventModal(dateStr) {
+    currentEditingEvent = null; selectedMemberIdx = null; renderEventModal();
+    document.getElementById('modal-title-txt').textContent = '일정 등록';
+    document.getElementById('eventTitle').value = '';
+    document.getElementById('eventAllDay').checked = true;
+    document.getElementById('eventColor').value = '#3498db';
+    document.getElementById('eventCompleted').checked = false;
+    document.getElementById('eventLink').value = '';
+    document.getElementById('repeatRow').style.display = 'flex';
+    document.getElementById('eventRepeat').value = 'none';
+    document.getElementById('repeatUntilRow').style.display = 'none';
+    document.getElementById('eventStartDate').value = dateStr;
+    document.getElementById('eventEndDate').value = dateStr;
+    document.getElementById('eventStartTime').value = '09:00';
+    document.getElementById('eventEndTime').value = '10:00';
+    toggleTimeInputs();
+    document.getElementById('btnDelete').style.display = 'none';
+    openModal('eventModal');
+}
+
+function openAddModalForToday() { openNewEventModal(fmtDate(new Date())); }
+
+// 일정 제목이 칸을 넘어갈 때 마우스 오버하면 전체 제목 보여주는 툴팁
+let activeTooltipEl = null;
+function showEventTooltip(targetEl, event) {
+    hideEventTooltip();
+    const memberIdx = event.extendedProps.memberIdx;
+    const memberName = (memberIdx !== null && memberIdx !== undefined && members[memberIdx]) ? members[memberIdx].name + ' · ' : '';
+    activeTooltipEl = document.createElement('div');
+    activeTooltipEl.className = 'event-tooltip';
+    activeTooltipEl.textContent = memberName + event.title;
+    document.body.appendChild(activeTooltipEl);
+    const rect = targetEl.getBoundingClientRect();
+    activeTooltipEl.style.left = Math.max(4, rect.left) + 'px';
+    activeTooltipEl.style.top = (rect.bottom + window.scrollY + 5) + 'px';
+}
+function hideEventTooltip() { if (activeTooltipEl) { activeTooltipEl.remove(); activeTooltipEl = null; } }
 function getNextDayStr(dateStr) { const d = new Date(dateStr); d.setDate(d.getDate() + 1); return fmtDate(d); }
 
 function toggleRepeatUntil() {
@@ -476,12 +538,14 @@ function saveEvent() {
     const startStr = allDay ? sDate : `${sDate}T${sTime}:00`; const endStr = allDay ? getNextDayStr(eDate) : `${eDate}T${eTime}:00`;
     const color = document.getElementById('eventColor').value;
     const completed = document.getElementById('eventCompleted').checked;
+    let link = document.getElementById('eventLink').value.trim();
+    if (link && !/^https?:\/\//i.test(link)) link = 'https://' + link;
 
     let eventData = {
         id: currentEditingEvent ? currentEditingEvent.id : Date.now().toString(),
         title: title, start: startStr, end: endStr, allDay: allDay,
         backgroundColor: color, borderColor: color, memberIdx: selectedMemberIdx,
-        completed: completed,
+        completed: completed, link: link || null,
         groupId: currentEditingEvent ? (currentEditingEvent.extendedProps.groupId || null) : null
     };
 
@@ -592,7 +656,7 @@ function refreshCalendarEvents(events) {
             id: e.id, title: e.title, start: e.start, end: e.end, allDay: e.allDay,
             backgroundColor: eColor, borderColor: eColor,
             classNames: e.completed ? ['event-completed'] : [],
-            extendedProps: { memberIdx: e.memberIdx, completed: !!e.completed, groupId: e.groupId || null }
+            extendedProps: { memberIdx: e.memberIdx, completed: !!e.completed, groupId: e.groupId || null, link: e.link || null }
         };
     });
     
@@ -667,17 +731,45 @@ async function initCalendarApp() {
 
     const calEl = document.getElementById('calendar');
     calendar = new FullCalendar.Calendar(calEl, {
-        locale: 'ko', initialView: window.innerWidth < 768 ? 'listMonth' : 'dayGridMonth',
-        headerToolbar: { left: 'dayGridMonth,listMonth', center: 'title', right: 'prev,next' },
-        selectable: true, editable: true, dayMaxEvents: false,
+        locale: 'ko', initialView: 'dayGridMonth',
+        headerToolbar: { left: 'dayGridMonth,timeGridDay,listMonth', center: 'title', right: 'prev,next' },
+        selectable: true, editable: true, dayMaxEvents: 4, navLinks: true, navLinkDayClick: 'timeGridDay',
+        selectLongPressDelay: 120, eventLongPressDelay: 120,
         events: [], // 이벤트는 아래 refreshCalendarEvents 에서 일괄 투입
         dayCellClassNames: (arg) => { const ds = fmtDate(arg.date); if (HOLIDAY_MAP[ds]) return ['holiday-day']; return []; },
+
+        dateClick: (info) => { openNewEventModal(info.dateStr); },
+
+        eventContent: (arg) => {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'fc-event-main-custom';
+            const titleEl = document.createElement('span');
+            titleEl.className = 'fc-event-title-custom';
+            titleEl.textContent = arg.event.title;
+            wrapper.appendChild(titleEl);
+            const link = arg.event.extendedProps.link;
+            if (link) {
+                const linkBtn = document.createElement('a');
+                linkBtn.className = 'event-link-icon';
+                linkBtn.textContent = '🔗';
+                linkBtn.href = link; linkBtn.target = '_blank'; linkBtn.rel = 'noopener noreferrer';
+                linkBtn.onclick = (e) => { e.stopPropagation(); };
+                wrapper.appendChild(linkBtn);
+            }
+            return { domNodes: [wrapper] };
+        },
+
+        eventDidMount: (info) => {
+            info.el.addEventListener('mouseenter', () => showEventTooltip(info.el, info.event));
+            info.el.addEventListener('mouseleave', hideEventTooltip);
+        },
 
         select: (info) => {
             currentEditingEvent = null; selectedMemberIdx = null; renderEventModal();
             document.getElementById('modal-title-txt').textContent = '일정 등록'; document.getElementById('eventTitle').value = '';
             document.getElementById('eventAllDay').checked = info.allDay; document.getElementById('eventColor').value = '#3498db';
             document.getElementById('eventCompleted').checked = false;
+            document.getElementById('eventLink').value = '';
             document.getElementById('repeatRow').style.display = 'flex';
             document.getElementById('eventRepeat').value = 'none';
             document.getElementById('repeatUntilRow').style.display = 'none';
@@ -693,6 +785,7 @@ async function initCalendarApp() {
             document.getElementById('modal-title-txt').textContent = '일정 수정'; document.getElementById('eventTitle').value = info.event.title;
             document.getElementById('eventColor').value = info.event.backgroundColor || '#3498db'; document.getElementById('eventAllDay').checked = info.event.allDay;
             document.getElementById('eventCompleted').checked = !!info.event.extendedProps.completed;
+            document.getElementById('eventLink').value = info.event.extendedProps.link || '';
             document.getElementById('repeatRow').style.display = 'none';
             document.getElementById('repeatUntilRow').style.display = 'none';
             
@@ -704,8 +797,8 @@ async function initCalendarApp() {
             
             toggleTimeInputs(); document.getElementById('btnDelete').style.display = 'block'; openModal('eventModal');
         },
-        eventDrop: (info) => { syncActionToCloud('UPDATE', { id: info.event.id, title: info.event.title, start: info.event.startStr, end: info.event.endStr, allDay: info.event.allDay, backgroundColor: info.event.backgroundColor, borderColor: info.event.borderColor, memberIdx: info.event.extendedProps.memberIdx, completed: info.event.extendedProps.completed, groupId: info.event.extendedProps.groupId }); },
-        eventResize: (info) => { syncActionToCloud('UPDATE', { id: info.event.id, title: info.event.title, start: info.event.startStr, end: info.event.endStr, allDay: info.event.allDay, backgroundColor: info.event.backgroundColor, borderColor: info.event.borderColor, memberIdx: info.event.extendedProps.memberIdx, completed: info.event.extendedProps.completed, groupId: info.event.extendedProps.groupId }); }
+        eventDrop: (info) => { syncActionToCloud('UPDATE', { id: info.event.id, title: info.event.title, start: info.event.startStr, end: info.event.endStr, allDay: info.event.allDay, backgroundColor: info.event.backgroundColor, borderColor: info.event.borderColor, memberIdx: info.event.extendedProps.memberIdx, completed: info.event.extendedProps.completed, groupId: info.event.extendedProps.groupId, link: info.event.extendedProps.link }); },
+        eventResize: (info) => { syncActionToCloud('UPDATE', { id: info.event.id, title: info.event.title, start: info.event.startStr, end: info.event.endStr, allDay: info.event.allDay, backgroundColor: info.event.backgroundColor, borderColor: info.event.borderColor, memberIdx: info.event.extendedProps.memberIdx, completed: info.event.extendedProps.completed, groupId: info.event.extendedProps.groupId, link: info.event.extendedProps.link }); }
     });
     
     // 로드된 이벤트를 캘린더에 색상 매핑하여 뿌려줌
