@@ -78,6 +78,29 @@
         #fab-add-event:hover { background: #3a7bd5; transform: scale(1.06); }
         @media (max-width: 768px) { #fab-add-event { width: 52px; height: 52px; font-size: 27px; bottom: 18px; right: 18px; } }
 
+        /* 재미 기능 버튼 */
+        .fun-btn { width: 100%; margin-bottom: 8px; padding: 10px 12px; border-radius: 8px; border: 1px solid #e0e0e0; background: #fff; cursor: pointer; font-size: 13px; font-weight: 600; color: #333; text-align: left; transition: background .15s; }
+        .fun-btn:hover { background: #f5f5f5; }
+        .fun-btn:last-child { margin-bottom: 0; }
+
+        /* 점심 룰렛 */
+        .cat-pill { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 20px; border: 1.5px solid #ddd; font-size: 12.5px; cursor: pointer; user-select: none; margin: 0 6px 6px 0; }
+        .cat-pill input { accent-color: #4a90e2; }
+        #lunchResult { font-size: 22px; font-weight: 700; color: #2c3e50; }
+
+        /* 디데이 풀스크린 */
+        #ddayFullscreen { position: fixed; inset: 0; background: #1c2530; z-index: 99998; display: none; align-items: center; justify-content: center; flex-direction: column; color: #fff; text-align: center; padding: 20px; }
+        #ddayFullscreen .dday-num { font-size: 84px; font-weight: 800; margin-bottom: 14px; }
+        #ddayFullscreen .dday-title { font-size: 22px; margin-bottom: 8px; }
+        #ddayFullscreen .dday-date { font-size: 14px; color: #99a; margin-bottom: 30px; }
+        #ddayFullscreen button { padding: 11px 24px; border-radius: 8px; border: none; background: #4a90e2; color: #fff; font-weight: 700; cursor: pointer; font-size: 14px; }
+
+        /* 틱택토 */
+        .ttt-grid { display: grid; grid-template-columns: repeat(3,72px); grid-template-rows: repeat(3,72px); gap: 6px; justify-content: center; margin: 14px 0; }
+        .ttt-cell { background: #f5f5f5; border: none; border-radius: 8px; font-size: 32px; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #2c3e50; }
+        .ttt-cell:hover { background: #eaeaea; }
+        #tttStatus { text-align: center; font-size: 14px; font-weight: 700; color: #444; margin-bottom: 4px; }
+
         /* 비밀번호 게이트 */
         #password-gate { position: fixed; inset: 0; background: #1c2530; display: flex; align-items: center; justify-content: center; z-index: 99999; }
         .pw-box { background: #fff; border-radius: 14px; padding: 32px 28px; width: 300px; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,.3); }
@@ -168,6 +191,12 @@
             <div id="upcoming-list"><div class="upcoming-empty">불러오는 중...</div></div>
         </div>
         <div class="sidebar-card">
+            <h3>🎉 재미 기능</h3>
+            <button class="fun-btn" onclick="renderLunchCategories(); openModal('lunchModal')">🍽 점심 메뉴 룰렛</button>
+            <button class="fun-btn" onclick="openDdayFullscreen()">📌 디데이 크게 보기</button>
+            <button class="fun-btn" onclick="openTicTacToe()">🎮 미니게임 (틱택토)</button>
+        </div>
+        <div class="sidebar-card">
             <h3>👥 멤버</h3>
             <div id="member-list"></div>
             <button id="btn-add-member" onclick="addMember()">+ 멤버 추가</button>
@@ -251,6 +280,37 @@
 <div id="holiday-toast"></div>
 <div id="notif-toast"></div>
 <button id="fab-add-event" style="display:none;" onclick="openAddModalForToday()" title="빠른 일정 추가">+</button>
+
+<div id="lunchModal" class="modal-overlay">
+    <div class="modal-box">
+        <div class="modal-hd"><h2>🍽 점심 메뉴 룰렛</h2><button class="close-x" onclick="closeModal('lunchModal')">×</button></div>
+        <div id="lunchCatRow" style="margin-bottom:14px;"></div>
+        <div style="background:#f8f9fa; border-radius:10px; padding:28px 10px; text-align:center; margin-bottom:14px;">
+            <div id="lunchResult">버튼을 눌러보세요</div>
+        </div>
+        <div class="modal-ft" style="justify-content:center;">
+            <button class="btn btn-primary" style="width:100%;" onclick="spinLunchRoulette()">🎲 룰렛 돌리기</button>
+        </div>
+    </div>
+</div>
+
+<div id="ddayFullscreen">
+    <div class="dday-title" id="ddayTitle"></div>
+    <div class="dday-num" id="ddayNum"></div>
+    <div class="dday-date" id="ddayDate"></div>
+    <button onclick="closeDdayFullscreen()">닫기</button>
+</div>
+
+<div id="tttModal" class="modal-overlay">
+    <div class="modal-box" style="width:300px;">
+        <div class="modal-hd"><h2>🎮 틱택토</h2><button class="close-x" onclick="closeModal('tttModal')">×</button></div>
+        <div id="tttStatus">X 차례</div>
+        <div class="ttt-grid" id="tttGrid"></div>
+        <div class="modal-ft" style="justify-content:center;">
+            <button class="btn btn-secondary" onclick="resetTicTacToe()">다시 시작</button>
+        </div>
+    </div>
+</div>
 
 <script>
 let calendar;
@@ -498,6 +558,116 @@ function showEventTooltip(targetEl, event) {
     activeTooltipEl.style.top = (rect.bottom + window.scrollY + 5) + 'px';
 }
 function hideEventTooltip() { if (activeTooltipEl) { activeTooltipEl.remove(); activeTooltipEl = null; } }
+
+// ── 점심 메뉴 룰렛 ──
+const LUNCH_FOODS = {
+"한식": ["김치찌개","된장찌개","부대찌개","순두부찌개","갈비탕","삼계탕","설렁탕","곰탕","육개장","감자탕","알탕","매운탕","청국장찌개","동태찌개","어묵탕","순대국","콩나물국밥","해장국","우거지국밥","만둣국","제육볶음","불고기","갈비찜","LA갈비구이","삼겹살","목살구이","곱창구이","막창구이","닭갈비","닭발","후라이드치킨","양념치킨","간장치킨","찜닭","닭볶음탕","훈제오리","족발","보쌈","육회","낙지볶음","비빔밥","돌솥비빔밥","전주비빔밥","육회비빔밥","김치볶음밥","새우볶음밥","잡채밥","김밥","충무김밥","물냉면","비빔냉면","칼국수","잔치국수","콩국수","열무국수","쫄면","수제비","팥칼국수","고기국수","초계국수"],
+"분식": ["떡볶이","라볶이","순대","튀김","김치전","감자전","파전","어묵꼬치","떡꼬치","컵밥"],
+"중식": ["짜장면","짬뽕","탕수육","마파두부덮밥","양장피","중식볶음밥","유린기","깐풍기","고추잡채","팔보채"],
+"일식": ["초밥","사시미","라멘","돈카츠","규동","오야코동","우동","소바","텐동","나베우동"],
+"양식": ["토마토파스타","크림파스타","오일파스타","피자","스테이크","함박스테이크","리조또","오므라이스","카레라이스","햄버거"]
+};
+function renderLunchCategories() {
+    const row = document.getElementById('lunchCatRow');
+    if (row.childElementCount) return;
+    Object.keys(LUNCH_FOODS).forEach(cat => {
+        const label = document.createElement('label');
+        label.className = 'cat-pill';
+        label.innerHTML = `<input type="checkbox" class="lunch-cat-cb" value="${cat}" checked>${cat}`;
+        row.appendChild(label);
+    });
+}
+function spinLunchRoulette() {
+    const checked = Array.from(document.querySelectorAll('.lunch-cat-cb:checked')).map(c => c.value);
+    let pool = [];
+    checked.forEach(c => { pool = pool.concat(LUNCH_FOODS[c] || []); });
+    const resultEl = document.getElementById('lunchResult');
+    if (pool.length === 0) { resultEl.textContent = '카테고리를 하나 이상 선택하세요'; return; }
+    let count = 0; const maxCount = 18;
+    const interval = setInterval(() => {
+        resultEl.textContent = pool[Math.floor(Math.random() * pool.length)];
+        count++;
+        if (count >= maxCount) {
+            clearInterval(interval);
+            resultEl.textContent = pool[Math.floor(Math.random() * pool.length)];
+        }
+    }, 80);
+}
+
+// ── 디데이 크게 보기 ──
+function openDdayFullscreen() {
+    const todayDate = new Date(fmtDate(new Date()) + 'T00:00:00');
+    const upcoming = (lastRawEvents || [])
+        .filter(e => !e.completed)
+        .map(e => {
+            const startDateStr = (e.start || '').split('T')[0];
+            const d = new Date(startDateStr + 'T00:00:00');
+            const diffDays = Math.round((d - todayDate) / 86400000);
+            return { title: e.title, dateStr: startDateStr, diffDays };
+        })
+        .filter(it => it.dateStr && it.diffDays >= 0)
+        .sort((a, b) => a.diffDays - b.diffDays);
+
+    if (upcoming.length === 0) {
+        document.getElementById('ddayTitle').textContent = '다가오는 일정이 없어요';
+        document.getElementById('ddayNum').textContent = '🎉';
+        document.getElementById('ddayDate').textContent = '';
+    } else {
+        const top = upcoming[0];
+        document.getElementById('ddayTitle').textContent = top.title;
+        document.getElementById('ddayNum').textContent = top.diffDays === 0 ? 'D-DAY' : ('D-' + top.diffDays);
+        document.getElementById('ddayDate').textContent = top.dateStr;
+    }
+    document.getElementById('ddayFullscreen').style.display = 'flex';
+}
+function closeDdayFullscreen() { document.getElementById('ddayFullscreen').style.display = 'none'; }
+
+// ── 미니게임: 틱택토 ──
+let tttBoard = Array(9).fill(null);
+let tttTurn = 'X';
+let tttOver = false;
+function renderTicTacToe() {
+    const grid = document.getElementById('tttGrid');
+    grid.innerHTML = '';
+    tttBoard.forEach((val, i) => {
+        const btn = document.createElement('button');
+        btn.className = 'ttt-cell';
+        btn.textContent = val || '';
+        btn.onclick = () => tttClick(i);
+        grid.appendChild(btn);
+    });
+}
+function tttClick(i) {
+    if (tttOver || tttBoard[i]) return;
+    tttBoard[i] = tttTurn;
+    const winner = checkTttWinner();
+    if (winner) {
+        document.getElementById('tttStatus').textContent = winner + ' 승리! 🎉';
+        tttOver = true;
+    } else if (tttBoard.every(v => v)) {
+        document.getElementById('tttStatus').textContent = '무승부!';
+        tttOver = true;
+    } else {
+        tttTurn = tttTurn === 'X' ? 'O' : 'X';
+        document.getElementById('tttStatus').textContent = tttTurn + ' 차례';
+    }
+    renderTicTacToe();
+}
+function checkTttWinner() {
+    const lines = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+    for (const [a,b,c] of lines) {
+        if (tttBoard[a] && tttBoard[a] === tttBoard[b] && tttBoard[a] === tttBoard[c]) return tttBoard[a];
+    }
+    return null;
+}
+function resetTicTacToe() {
+    tttBoard = Array(9).fill(null);
+    tttTurn = 'X';
+    tttOver = false;
+    document.getElementById('tttStatus').textContent = 'X 차례';
+    renderTicTacToe();
+}
+function openTicTacToe() { resetTicTacToe(); openModal('tttModal'); }
 function getNextDayStr(dateStr) { const d = new Date(dateStr); d.setDate(d.getDate() + 1); return fmtDate(d); }
 
 function toggleRepeatUntil() {
