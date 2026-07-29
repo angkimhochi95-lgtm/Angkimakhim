@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>팀 캘린더 (시간/색상 오류 완벽수정)</title>
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js'></script>
+    <script src='https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.12.1/chess.min.js'></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     
     <style>
@@ -95,11 +96,31 @@
         #ddayFullscreen .dday-date { font-size: 14px; color: #99a; margin-bottom: 30px; }
         #ddayFullscreen button { padding: 11px 24px; border-radius: 8px; border: none; background: #4a90e2; color: #fff; font-weight: 700; cursor: pointer; font-size: 14px; }
 
-        /* 틱택토 */
-        .ttt-grid { display: grid; grid-template-columns: repeat(3,72px); grid-template-rows: repeat(3,72px); gap: 6px; justify-content: center; margin: 14px 0; }
-        .ttt-cell { background: #f5f5f5; border: none; border-radius: 8px; font-size: 32px; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #2c3e50; }
-        .ttt-cell:hover { background: #eaeaea; }
-        #tttStatus { text-align: center; font-size: 14px; font-weight: 700; color: #444; margin-bottom: 4px; }
+        /* 디데이 선택 목록 */
+        .dday-pick-item { display: flex; align-items: center; gap: 10px; padding: 10px 8px; border-radius: 8px; cursor: pointer; border-bottom: 1px solid #f0f0f0; }
+        .dday-pick-item:hover { background: #f5f5f5; }
+        .dday-pick-badge { flex-shrink: 0; font-size: 11px; font-weight: 700; color: #fff; background: #4a90e2; padding: 3px 8px; border-radius: 20px; min-width: 40px; text-align: center; }
+        .dday-pick-title { font-size: 13.5px; font-weight: 600; color: #222; flex: 1; }
+        .dday-pick-date { font-size: 11px; color: #999; }
+
+        /* 체스 */
+        .chess-board { display: grid; grid-template-columns: repeat(8, 38px); grid-template-rows: repeat(8, 38px); border: 2px solid #2c3e50; border-radius: 4px; overflow: hidden; margin: 0 auto; }
+        .chess-sq { display: flex; align-items: center; justify-content: center; font-size: 26px; cursor: pointer; position: relative; user-select: none; }
+        .chess-sq.light { background: #ebecd0; }
+        .chess-sq.dark { background: #779556; }
+        .chess-sq.selected { outline: 3px solid #4a90e2; outline-offset: -3px; }
+        .chess-sq.hint::after { content: ''; position: absolute; width: 12px; height: 12px; border-radius: 50%; background: rgba(74,144,226,0.55); }
+        .chess-sq.hint-capture { outline: 3px solid rgba(231,76,60,0.75); outline-offset: -3px; }
+        #chessStatus { text-align: center; font-size: 13.5px; font-weight: 700; color: #444; margin-bottom: 10px; min-height: 18px; }
+        .chess-controls { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; }
+        .chess-controls select { flex: 1; padding: 8px; border-radius: 7px; border: 1px solid #ddd; font-size: 12.5px; }
+
+        /* 팀 메모장 */
+        .chat-msg { background: #f1f3f5; border-radius: 10px; padding: 8px 12px; font-size: 13px; }
+        .chat-msg .chat-author { font-weight: 700; color: #2c3e50; margin-right: 6px; }
+        .chat-msg .chat-time { font-size: 10.5px; color: #999; float: right; }
+        .chat-msg .chat-text { display: block; margin-top: 2px; color: #333; word-break: break-word; }
+        .chat-empty { text-align: center; color: #999; font-size: 12px; padding: 20px 0; }
 
         /* 비밀번호 게이트 */
         #password-gate { position: fixed; inset: 0; background: #1c2530; display: flex; align-items: center; justify-content: center; z-index: 99999; }
@@ -193,8 +214,12 @@
         <div class="sidebar-card">
             <h3>🎉 재미 기능</h3>
             <button class="fun-btn" onclick="renderLunchCategories(); openModal('lunchModal')">🍽 점심 메뉴 룰렛</button>
-            <button class="fun-btn" onclick="openDdayFullscreen()">📌 디데이 크게 보기</button>
-            <button class="fun-btn" onclick="openTicTacToe()">🎮 미니게임 (틱택토)</button>
+            <button class="fun-btn" onclick="openDdayPicker()">📌 디데이 크게 보기</button>
+            <button class="fun-btn" onclick="openChessGame()">♟ AI와 체스 두기</button>
+        </div>
+        <div class="sidebar-card">
+            <h3>💬 팀 메모장</h3>
+            <button class="fun-btn" onclick="openTeamChat()">메모 보기 / 남기기</button>
         </div>
         <div class="sidebar-card">
             <h3>👥 멤버</h3>
@@ -294,6 +319,13 @@
     </div>
 </div>
 
+<div id="ddayPickerModal" class="modal-overlay">
+    <div class="modal-box" style="width:340px;">
+        <div class="modal-hd"><h2>📌 어떤 일정을 크게 볼까요?</h2><button class="close-x" onclick="closeModal('ddayPickerModal')">×</button></div>
+        <div id="ddayPickList" style="max-height:360px; overflow-y:auto;"></div>
+    </div>
+</div>
+
 <div id="ddayFullscreen">
     <div class="dday-title" id="ddayTitle"></div>
     <div class="dday-num" id="ddayNum"></div>
@@ -301,13 +333,37 @@
     <button onclick="closeDdayFullscreen()">닫기</button>
 </div>
 
-<div id="tttModal" class="modal-overlay">
-    <div class="modal-box" style="width:300px;">
-        <div class="modal-hd"><h2>🎮 틱택토</h2><button class="close-x" onclick="closeModal('tttModal')">×</button></div>
-        <div id="tttStatus">X 차례</div>
-        <div class="ttt-grid" id="tttGrid"></div>
-        <div class="modal-ft" style="justify-content:center;">
-            <button class="btn btn-secondary" onclick="resetTicTacToe()">다시 시작</button>
+<div id="chessModal" class="modal-overlay">
+    <div class="modal-box" style="width:360px;">
+        <div class="modal-hd"><h2>♟ AI와 체스 두기</h2><button class="close-x" onclick="closeModal('chessModal')">×</button></div>
+        <div class="chess-controls">
+            <select id="chessLevel">
+                <option value="1">1 - 완전 왕초보</option>
+                <option value="2">2 - 왕초보</option>
+                <option value="3">3 - 초급</option>
+                <option value="4">4 - 초중급</option>
+                <option value="5">5 - 중급</option>
+                <option value="6">6 - 중급+</option>
+                <option value="7">7 - 중상급</option>
+                <option value="8">8 - 상급</option>
+                <option value="9" selected>9 - 상급+</option>
+                <option value="10">10 - 숙련자</option>
+            </select>
+            <button class="btn btn-secondary" style="padding:8px 12px; font-size:12.5px;" onclick="startNewChessGame()">새 게임</button>
+        </div>
+        <div id="chessStatus">당신은 백(⚪), 아래에서 위로 둡니다</div>
+        <div class="chess-board" id="chessBoard"></div>
+    </div>
+</div>
+
+<div id="teamChatModal" class="modal-overlay">
+    <div class="modal-box" style="width:380px; max-height:80vh; display:flex; flex-direction:column;">
+        <div class="modal-hd"><h2>💬 팀 메모장</h2><button class="close-x" onclick="closeModal('teamChatModal')">×</button></div>
+        <div id="chatMessages" style="flex:1; overflow-y:auto; max-height:320px; margin-bottom:12px; display:flex; flex-direction:column; gap:8px;"><div class="chat-empty">불러오는 중...</div></div>
+        <div style="display:flex; gap:6px;">
+            <input type="text" id="chatAuthorInput" placeholder="이름" style="width:80px; padding:9px; border:1px solid #ddd; border-radius:7px; font-size:13px;">
+            <input type="text" id="chatTextInput" placeholder="메모 남기기..." style="flex:1; padding:9px; border:1px solid #ddd; border-radius:7px; font-size:13px;" onkeydown="if(event.key==='Enter') sendTeamMessage()">
+            <button class="btn btn-primary" style="padding:9px 14px;" onclick="sendTeamMessage()">전송</button>
         </div>
     </div>
 </div>
@@ -362,6 +418,7 @@ function isCloudSynced() { return apiKey && binId; }
 // ── 멤버별 보기 필터 ──
 let hiddenMembers = new Set(JSON.parse(localStorage.getItem('cal_hidden_members_c1') || '[]'));
 let lastRawEvents = [];
+let teamMessages = [];
 
 function toggleMemberVisibility(i) {
     if (hiddenMembers.has(i)) hiddenMembers.delete(i); else hiddenMembers.add(i);
@@ -595,9 +652,9 @@ function spinLunchRoulette() {
 }
 
 // ── 디데이 크게 보기 ──
-function openDdayFullscreen() {
+function getUpcomingList() {
     const todayDate = new Date(fmtDate(new Date()) + 'T00:00:00');
-    const upcoming = (lastRawEvents || [])
+    return (lastRawEvents || [])
         .filter(e => !e.completed)
         .map(e => {
             const startDateStr = (e.start || '').split('T')[0];
@@ -607,67 +664,273 @@ function openDdayFullscreen() {
         })
         .filter(it => it.dateStr && it.diffDays >= 0)
         .sort((a, b) => a.diffDays - b.diffDays);
+}
 
+function openDdayPicker() {
+    const upcoming = getUpcomingList();
+    const list = document.getElementById('ddayPickList');
     if (upcoming.length === 0) {
-        document.getElementById('ddayTitle').textContent = '다가오는 일정이 없어요';
-        document.getElementById('ddayNum').textContent = '🎉';
-        document.getElementById('ddayDate').textContent = '';
+        list.innerHTML = '<div class="upcoming-empty">다가오는 일정이 없어요 🎉</div>';
     } else {
-        const top = upcoming[0];
-        document.getElementById('ddayTitle').textContent = top.title;
-        document.getElementById('ddayNum').textContent = top.diffDays === 0 ? 'D-DAY' : ('D-' + top.diffDays);
-        document.getElementById('ddayDate').textContent = top.dateStr;
+        list.innerHTML = upcoming.map((it, idx) => {
+            const dday = it.diffDays === 0 ? 'D-DAY' : ('D-' + it.diffDays);
+            return `<div class="dday-pick-item" onclick="showDdayFullscreen(${idx})">
+                <span class="dday-pick-badge">${dday}</span>
+                <span class="dday-pick-title">${escHtml(it.title)}</span>
+                <span class="dday-pick-date">${it.dateStr.slice(5)}</span>
+            </div>`;
+        }).join('');
     }
+    window._ddayPickCache = upcoming;
+    openModal('ddayPickerModal');
+}
+
+function showDdayFullscreen(idx) {
+    const top = (window._ddayPickCache || [])[idx];
+    closeModal('ddayPickerModal');
+    if (!top) return;
+    document.getElementById('ddayTitle').textContent = top.title;
+    document.getElementById('ddayNum').textContent = top.diffDays === 0 ? 'D-DAY' : ('D-' + top.diffDays);
+    document.getElementById('ddayDate').textContent = top.dateStr;
     document.getElementById('ddayFullscreen').style.display = 'flex';
 }
 function closeDdayFullscreen() { document.getElementById('ddayFullscreen').style.display = 'none'; }
 
-// ── 미니게임: 틱택토 ──
-let tttBoard = Array(9).fill(null);
-let tttTurn = 'X';
-let tttOver = false;
-function renderTicTacToe() {
-    const grid = document.getElementById('tttGrid');
-    grid.innerHTML = '';
-    tttBoard.forEach((val, i) => {
-        const btn = document.createElement('button');
-        btn.className = 'ttt-cell';
-        btn.textContent = val || '';
-        btn.onclick = () => tttClick(i);
-        grid.appendChild(btn);
-    });
+// ── AI 체스 ──
+let chessGame = null;
+let chessSelected = null;
+let chessThinking = false;
+
+const CHESS_UNICODE = {
+    w: { p: '♙', n: '♘', b: '♗', r: '♖', q: '♕', k: '♔' },
+    b: { p: '♟', n: '♞', b: '♝', r: '♜', q: '♛', k: '♚' }
+};
+
+function startNewChessGame() {
+    chessGame = new Chess();
+    chessSelected = null;
+    chessThinking = false;
+    document.getElementById('chessStatus').textContent = '당신은 백(⚪), 아래에서 위로 둡니다';
+    renderChessBoard();
 }
-function tttClick(i) {
-    if (tttOver || tttBoard[i]) return;
-    tttBoard[i] = tttTurn;
-    const winner = checkTttWinner();
-    if (winner) {
-        document.getElementById('tttStatus').textContent = winner + ' 승리! 🎉';
-        tttOver = true;
-    } else if (tttBoard.every(v => v)) {
-        document.getElementById('tttStatus').textContent = '무승부!';
-        tttOver = true;
+
+function openChessGame() {
+    if (!chessGame) startNewChessGame();
+    else renderChessBoard();
+    openModal('chessModal');
+}
+
+function chessSquareName(row, col) { return String.fromCharCode(97 + col) + (8 - row); }
+
+function chessPieceAt(sq) {
+    const file = sq.charCodeAt(0) - 97;
+    const rank = parseInt(sq[1], 10);
+    const row = 8 - rank;
+    return chessGame.board()[row][file];
+}
+
+function renderChessBoard() {
+    const boardEl = document.getElementById('chessBoard');
+    boardEl.innerHTML = '';
+    const board = chessGame.board();
+    let hints = [];
+    if (chessSelected) {
+        hints = chessGame.moves({ square: chessSelected, verbose: true }).map(m => m.to);
+    }
+    for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) {
+            const sq = chessSquareName(r, c);
+            const piece = board[r][c];
+            const div = document.createElement('div');
+            div.className = 'chess-sq ' + (((r + c) % 2 === 0) ? 'light' : 'dark');
+            if (sq === chessSelected) div.classList.add('selected');
+            if (hints.includes(sq)) div.classList.add(piece ? 'hint-capture' : 'hint');
+            if (piece) div.textContent = CHESS_UNICODE[piece.color][piece.type];
+            div.onclick = () => onChessSquareClick(sq);
+            boardEl.appendChild(div);
+        }
+    }
+}
+
+function onChessSquareClick(sq) {
+    if (chessThinking || chessGame.game_over() || chessGame.turn() !== 'w') return;
+
+    if (chessSelected) {
+        const legalTargets = chessGame.moves({ square: chessSelected, verbose: true }).map(m => m.to);
+        if (legalTargets.includes(sq)) {
+            chessGame.move({ from: chessSelected, to: sq, promotion: 'q' });
+            chessSelected = null;
+            renderChessBoard();
+            const over = checkChessGameOver();
+            if (!over) {
+                document.getElementById('chessStatus').textContent = 'AI가 생각 중...';
+                chessThinking = true;
+                setTimeout(makeAiMove, 350);
+            }
+            return;
+        }
+    }
+    const pieceHere = chessPieceAt(sq);
+    chessSelected = (pieceHere && pieceHere.color === 'w') ? sq : null;
+    renderChessBoard();
+}
+
+function checkChessGameOver() {
+    if (!chessGame.game_over()) {
+        document.getElementById('chessStatus').textContent = (chessGame.in_check() ? '체크! ' : '') + (chessGame.turn() === 'w' ? '당신' : 'AI') + ' 차례';
+        return false;
+    }
+    if (chessGame.in_checkmate()) {
+        document.getElementById('chessStatus').textContent = (chessGame.turn() === 'w' ? 'AI 승리! (체크메이트)' : '당신 승리! 🎉 (체크메이트)');
+    } else if (chessGame.in_stalemate()) {
+        document.getElementById('chessStatus').textContent = '무승부 (스테일메이트)';
     } else {
-        tttTurn = tttTurn === 'X' ? 'O' : 'X';
-        document.getElementById('tttStatus').textContent = tttTurn + ' 차례';
+        document.getElementById('chessStatus').textContent = '무승부';
     }
-    renderTicTacToe();
+    return true;
 }
-function checkTttWinner() {
-    const lines = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
-    for (const [a,b,c] of lines) {
-        if (tttBoard[a] && tttBoard[a] === tttBoard[b] && tttBoard[a] === tttBoard[c]) return tttBoard[a];
+
+function evaluateChessBoard(game) {
+    const values = { p: 100, n: 320, b: 330, r: 500, q: 900, k: 20000 };
+    const board = game.board();
+    let score = 0;
+    for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) {
+            const sq = board[r][c];
+            if (!sq) continue;
+            let val = values[sq.type];
+            val += (3.5 - Math.abs(3.5 - r)) * (3.5 - Math.abs(3.5 - c)) * 2;
+            score += sq.color === 'w' ? val : -val;
+        }
     }
-    return null;
+    return score;
 }
-function resetTicTacToe() {
-    tttBoard = Array(9).fill(null);
-    tttTurn = 'X';
-    tttOver = false;
-    document.getElementById('tttStatus').textContent = 'X 차례';
-    renderTicTacToe();
+
+function chessMinimax(game, depth, alpha, beta, maximizing) {
+    if (depth === 0 || game.game_over()) return evaluateChessBoard(game);
+    const moves = game.moves();
+    if (maximizing) {
+        let best = -Infinity;
+        for (const m of moves) {
+            game.move(m);
+            const val = chessMinimax(game, depth - 1, alpha, beta, false);
+            game.undo();
+            best = Math.max(best, val);
+            alpha = Math.max(alpha, val);
+            if (beta <= alpha) break;
+        }
+        return best;
+    } else {
+        let best = Infinity;
+        for (const m of moves) {
+            game.move(m);
+            const val = chessMinimax(game, depth - 1, alpha, beta, true);
+            game.undo();
+            best = Math.min(best, val);
+            beta = Math.min(beta, val);
+            if (beta <= alpha) break;
+        }
+        return best;
+    }
 }
-function openTicTacToe() { resetTicTacToe(); openModal('tttModal'); }
+
+function getChessAiMove(game, level) {
+    const moves = game.moves();
+    if (moves.length === 0) return null;
+
+    if (level <= 3) {
+        const randomChance = level === 1 ? 0.85 : level === 2 ? 0.55 : 0.3;
+        if (Math.random() < randomChance) return moves[Math.floor(Math.random() * moves.length)];
+    }
+
+    const depthMap = { 1: 1, 2: 1, 3: 1, 4: 1, 5: 2, 6: 2, 7: 3, 8: 3, 9: 4, 10: 4 };
+    const depth = depthMap[level] || 2;
+    let bestMove = null;
+    let bestScore = Infinity; // AI는 흑 = 점수 최소화 원함
+    for (const m of moves) {
+        game.move(m);
+        const score = chessMinimax(game, depth - 1, -Infinity, Infinity, true);
+        game.undo();
+        if (score < bestScore) { bestScore = score; bestMove = m; }
+    }
+    return bestMove || moves[Math.floor(Math.random() * moves.length)];
+}
+
+function makeAiMove() {
+    const level = parseInt(document.getElementById('chessLevel').value, 10) || 5;
+    const move = getChessAiMove(chessGame, level);
+    if (move) chessGame.move(move);
+    chessThinking = false;
+    renderChessBoard();
+    checkChessGameOver();
+}
+
+// ── 팀 메모장 ──
+function renderChatMessages() {
+    const box = document.getElementById('chatMessages');
+    if (!teamMessages || teamMessages.length === 0) { box.innerHTML = '<div class="chat-empty">아직 메모가 없어요</div>'; return; }
+    box.innerHTML = teamMessages.map(m => {
+        const time = new Date(m.ts).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+        return `<div class="chat-msg"><span class="chat-time">${time}</span><span class="chat-author">${escHtml(m.author)}</span><span class="chat-text">${escHtml(m.text)}</span></div>`;
+    }).join('');
+    box.scrollTop = box.scrollHeight;
+}
+
+async function openTeamChat() {
+    document.getElementById('chatAuthorInput').value = localStorage.getItem('chat_author_c1') || '';
+    document.getElementById('chatMessages').innerHTML = '<div class="chat-empty">불러오는 중...</div>';
+    openModal('teamChatModal');
+    if (isCloudSynced()) {
+        try {
+            const res = await fetch(`https://api.jsonbin.io/v3/b/${binId}/latest`, { headers: { 'X-Master-Key': apiKey } });
+            const data = await res.json();
+            teamMessages = data.record.messages || [];
+        } catch(_) { /* 실패시 마지막으로 불러온 메모 그대로 표시 */ }
+    } else {
+        teamMessages = JSON.parse(localStorage.getItem('teamMessages_c1') || '[]');
+    }
+    renderChatMessages();
+}
+
+async function sendTeamMessage() {
+    const authorInput = document.getElementById('chatAuthorInput');
+    const textInput = document.getElementById('chatTextInput');
+    const author = authorInput.value.trim() || '익명';
+    const text = textInput.value.trim();
+    if (!text) return;
+    localStorage.setItem('chat_author_c1', author);
+    const msg = { id: Date.now().toString(), author, text, ts: Date.now() };
+
+    if (!isCloudSynced()) {
+        teamMessages.push(msg);
+        localStorage.setItem('teamMessages_c1', JSON.stringify(teamMessages));
+        renderChatMessages();
+        textInput.value = '';
+        return;
+    }
+
+    textInput.disabled = true;
+    try {
+        const res = await fetch(`https://api.jsonbin.io/v3/b/${binId}/latest`, { headers: { 'X-Master-Key': apiKey } });
+        const data = await res.json();
+        let cloudMessages = data.record.messages || [];
+        cloudMessages.push(msg);
+        if (cloudMessages.length > 200) cloudMessages = cloudMessages.slice(-200);
+        await fetch(`https://api.jsonbin.io/v3/b/${binId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'X-Master-Key': apiKey },
+            body: JSON.stringify({ events: data.record.events || [], members: data.record.members || members, messages: cloudMessages })
+        });
+        teamMessages = cloudMessages;
+        renderChatMessages();
+        textInput.value = '';
+    } catch(_) {
+        alert('메모 전송에 실패했어요. 다시 시도해주세요.');
+    } finally {
+        textInput.disabled = false;
+        textInput.focus();
+    }
+}
 function getNextDayStr(dateStr) { const d = new Date(dateStr); d.setDate(d.getDate() + 1); return fmtDate(d); }
 
 function toggleRepeatUntil() {
@@ -773,6 +1036,7 @@ async function syncActionToCloud(actionType, eventData) {
         const data = await res.json();
         let cloudEvents = data.record.events || [];
         let cloudMembers = data.record.members || members;
+        let cloudMessages = data.record.messages || teamMessages || [];
 
         if (actionType === 'ADD' || actionType === 'UPDATE') {
             let idx = cloudEvents.findIndex(e => e.id === eventData.id);
@@ -791,7 +1055,7 @@ async function syncActionToCloud(actionType, eventData) {
         await fetch(`https://api.jsonbin.io/v3/b/${binId}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json', 'X-Master-Key': apiKey },
-            body: JSON.stringify({ events: cloudEvents, members: cloudMembers })
+            body: JSON.stringify({ events: cloudEvents, members: cloudMembers, messages: cloudMessages })
         });
 
         localStorage.setItem('myAdvancedEvents_c1', JSON.stringify(cloudEvents));
@@ -869,7 +1133,7 @@ function renderUpcomingSummary(events) {
 async function createNewBin() {
     const key = document.getElementById('apiKeyInput').value.trim(); if (!key) { alert('API Key를 먼저 입력해주세요.'); return; }
     try {
-        const res = await fetch('https://api.jsonbin.io/v3/b', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Master-Key': key, 'X-Bin-Name': 'TeamCalendar' }, body: JSON.stringify({ events: [], members }) });
+        const res = await fetch('https://api.jsonbin.io/v3/b', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Master-Key': key, 'X-Bin-Name': 'TeamCalendar' }, body: JSON.stringify({ events: [], members, messages: [] }) });
         const data = await res.json(); document.getElementById('binIdInput').value = data.metadata.id; alert('DB 생성 완료!\n[저장 및 연동 시작]을 눌러주세요.');
     } catch(_) { alert('생성 실패. API Key 확인 요망.'); }
 }
@@ -894,10 +1158,11 @@ async function initCalendarApp() {
             const resp = await fetch(`https://api.jsonbin.io/v3/b/${binId}/latest`, { headers: { 'X-Master-Key': apiKey } });
             const data = await resp.json();
             savedEvents = data.record.events || [];
+            teamMessages = data.record.messages || [];
             if (data.record.members) { members = data.record.members; saveMembers(); renderMembers(); }
             document.getElementById('sync-status-txt').textContent = '☁️ 동기화 켜짐';
-        } catch(_) { document.getElementById('sync-status-txt').textContent = '⚠️ 연결 실패 (로컬)'; savedEvents = JSON.parse(localStorage.getItem('myAdvancedEvents_c1') || '[]'); }
-    } else { savedEvents = JSON.parse(localStorage.getItem('myAdvancedEvents_c1') || '[]'); }
+        } catch(_) { document.getElementById('sync-status-txt').textContent = '⚠️ 연결 실패 (로컬)'; savedEvents = JSON.parse(localStorage.getItem('myAdvancedEvents_c1') || '[]'); teamMessages = JSON.parse(localStorage.getItem('teamMessages_c1') || '[]'); }
+    } else { savedEvents = JSON.parse(localStorage.getItem('myAdvancedEvents_c1') || '[]'); teamMessages = JSON.parse(localStorage.getItem('teamMessages_c1') || '[]'); }
 
     const calEl = document.getElementById('calendar');
     calendar = new FullCalendar.Calendar(calEl, {
