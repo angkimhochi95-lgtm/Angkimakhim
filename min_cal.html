@@ -153,7 +153,6 @@
         .chess-move-pair { display: flex; gap: 6px; }
         .chess-move-num { color: #999; width: 22px; flex-shrink: 0; }
 
-        /* 오목 모달 */
         .omok-modal-box { width: 100%; max-width: 580px; padding: 20px; }
         .omok-layout { display: flex; gap: 16px; align-items: flex-start; }
         .omok-main { flex: 1 1 340px; min-width: 0; width: 100%; }
@@ -179,11 +178,13 @@
             #fab-add-event { width: 52px; height: 52px; font-size: 27px; bottom: 18px; right: 18px; }
         }
 
-        /* 팀 메모장 */
-        .chat-msg { background: #f1f3f5; border-radius: 10px; padding: 8px 12px; font-size: 13px; }
+        /* 팀 메모장 삭제 버튼 스타일 */
+        .chat-msg { background: #f1f3f5; border-radius: 10px; padding: 8px 12px; font-size: 13px; position: relative; }
         .chat-msg .chat-author { font-weight: 700; color: #2c3e50; margin-right: 6px; }
-        .chat-msg .chat-time { font-size: 10.5px; color: #999; float: right; }
+        .chat-msg .chat-time { font-size: 10.5px; color: #999; margin-right: 18px; float: right; }
         .chat-msg .chat-text { display: block; margin-top: 2px; color: #333; word-break: break-word; }
+        .chat-msg .chat-del-btn { position: absolute; top: 6px; right: 8px; background: none; border: none; color: #bbb; cursor: pointer; font-size: 14px; padding: 0; line-height: 1; }
+        .chat-msg .chat-del-btn:hover { color: #e74c3c; }
         .chat-empty { text-align: center; color: #999; font-size: 12px; padding: 20px 0; }
 
         /* 비밀번호 게이트 */
@@ -471,10 +472,16 @@
 <div id="ddayBannerModal" class="modal-overlay">
     <div class="modal-box" style="width:380px;">
         <div class="modal-hd"><h2>📌 상단 배너 설정</h2><button class="close-x" onclick="closeModal('ddayBannerModal')">×</button></div>
-        <div class="form-row"><label>제목</label><input type="text" id="bannerTitleInput" placeholder="예: 대만여행"></div>
+        <div class="form-row">
+            <label>일정 선택</label>
+            <select id="bannerEventSelect" onchange="onBannerEventSelectChange()">
+                <option value="">일정을 선택하세요</option>
+            </select>
+        </div>
+        <div class="form-row"><label>제목</label><input type="text" id="bannerTitleInput" placeholder="선택한 일정 제목"></div>
         <div class="form-row"><label>날짜</label><input type="date" id="bannerDateInput"></div>
         <div class="form-row"><label>배경 이미지 URL</label><input type="url" id="bannerImageInput" placeholder="https://... (선택)"></div>
-        <div style="font-size:11.5px; color:#999; margin:-6px 0 14px;">비워두면 제목에 어울리는 색상 테마가 자동으로 적용돼요 (예: "여행", "생일", "회식" 등)</div>
+        <div style="font-size:11.5px; color:#999; margin:-6px 0 14px;">비워두면 제목에 어울리는 색상 테마가 자동으로 적용돼요.</div>
         <div class="modal-ft">
             <button class="btn btn-secondary" onclick="clearDdayBanner()">배너 끄기</button>
             <button class="btn btn-primary" onclick="saveDdayBanner()">저장</button>
@@ -792,7 +799,7 @@ function spinLunchRoulette() {
     }, 80);
 }
 
-// ── 상단 디데이 배너 ──
+// ── 상단 디데이 배너 (날짜 오름차순 정렬 반영) ──
 let ddayBanner = null;
 
 const DDAY_THEMES = [
@@ -833,10 +840,42 @@ function renderDdayBanner() {
 }
 
 function openDdayBannerConfig() {
+    const selectEl = document.getElementById('bannerEventSelect');
+    selectEl.innerHTML = '<option value="">일정을 선택하세요</option>';
+    
+    // 날짜 오름차순(가장 빠른 날짜 순)으로 정렬하여 드롭다운에 추가
+    if (lastRawEvents && lastRawEvents.length > 0) {
+        const sortedEvents = [...lastRawEvents].sort((a, b) => {
+            const dateA = (a.start || '').split('T')[0];
+            const dateB = (b.start || '').split('T')[0];
+            return dateA.localeCompare(dateB);
+        });
+
+        sortedEvents.forEach(e => {
+            const startDateStr = (e.start || '').split('T')[0];
+            if (startDateStr) {
+                const opt = document.createElement('option');
+                opt.value = JSON.stringify({ title: e.title, date: startDateStr });
+                opt.textContent = `[${startDateStr}] ${e.title}`;
+                selectEl.appendChild(opt);
+            }
+        });
+    }
+
     document.getElementById('bannerTitleInput').value = ddayBanner ? ddayBanner.title : '';
     document.getElementById('bannerDateInput').value = ddayBanner ? ddayBanner.date : '';
     document.getElementById('bannerImageInput').value = ddayBanner ? (ddayBanner.imageUrl || '') : '';
     openModal('ddayBannerModal');
+}
+
+function onBannerEventSelectChange() {
+    const selectEl = document.getElementById('bannerEventSelect');
+    if (!selectEl.value) return;
+    try {
+        const item = JSON.parse(selectEl.value);
+        document.getElementById('bannerTitleInput').value = item.title;
+        document.getElementById('bannerDateInput').value = item.date;
+    } catch(_) {}
 }
 
 async function persistDdayBanner(bannerObj) {
@@ -872,7 +911,7 @@ function clearDdayBanner() {
     persistDdayBanner(null);
 }
 
-// ── AI 체스 (경량 엔진 구현) ──
+// ── AI 체스 ──
 class CustomChess {
     constructor() { this.reset(); }
     reset() {
@@ -1323,9 +1362,42 @@ function renderChatMessages() {
     if (!teamMessages || teamMessages.length === 0) { box.innerHTML = '<div class="chat-empty">아직 메모가 없어요</div>'; return; }
     box.innerHTML = teamMessages.map(m => {
         const time = new Date(m.ts).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-        return `<div class="chat-msg"><span class="chat-time">${time}</span><span class="chat-author">${escHtml(m.author)}</span><span class="chat-text">${escHtml(m.text)}</span></div>`;
+        return `<div class="chat-msg">
+            <button class="chat-del-btn" onclick="deleteTeamMessage('${m.id}')" title="메모 삭제">×</button>
+            <span class="chat-time">${time}</span>
+            <span class="chat-author">${escHtml(m.author)}</span>
+            <span class="chat-text">${escHtml(m.text)}</span>
+        </div>`;
     }).join('');
     box.scrollTop = box.scrollHeight;
+}
+
+async function deleteTeamMessage(msgId) {
+    if (!confirm('이 메모를 삭제하시겠습니까?')) return;
+    
+    teamMessages = teamMessages.filter(m => m.id !== msgId);
+    
+    if (!isCloudSynced()) {
+        localStorage.setItem('teamMessages_c1', JSON.stringify(teamMessages));
+        renderChatMessages();
+        return;
+    }
+
+    try {
+        const res = await fetch(`https://api.jsonbin.io/v3/b/${binId}/latest`, { headers: { 'X-Master-Key': apiKey } });
+        const data = await res.json();
+        let cloudMessages = (data.record.messages || []).filter(m => m.id !== msgId);
+        
+        await fetch(`https://api.jsonbin.io/v3/b/${binId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'X-Master-Key': apiKey },
+            body: JSON.stringify({ events: data.record.events || [], members: data.record.members || members, messages: cloudMessages, banner: data.record.banner !== undefined ? data.record.banner : ddayBanner })
+        });
+        teamMessages = cloudMessages;
+        renderChatMessages();
+    } catch(_) {
+        alert('메모 삭제 중 오류가 발생했습니다.');
+    }
 }
 
 function renderChatAuthorOptions() {
@@ -1710,7 +1782,7 @@ async function initCalendarApp() {
     }
 }
 
-function toggleKeyInfo(btn) { const box = document.getElementById('keyInfoBox'); const isOpen = box.style.display === 'block'; box.style.display = 'block'; btn.textContent = isOpen ? '🔑 Key & ID 보기 ▾' : '🔑 Key & ID 숨기기 ▴'; if(isOpen) box.style.display = 'none'; }
+function toggleKeyInfo(btn) { const box = document.getElementById('keyInfoBox'); const isOpen = box.style.display === 'block'; box.style.display = isOpen ? 'none' : 'block'; btn.textContent = isOpen ? '🔑 Key & ID 보기 ▾' : '🔑 Key & ID 숨기기 ▴'; }
 function showToast(msg) { const t = document.getElementById('holiday-toast'); t.textContent = '🎌 ' + msg; t.style.display = 'block'; setTimeout(() => { t.style.display = 'none'; }, 2500); }
 </script>
 </body>
