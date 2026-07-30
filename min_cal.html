@@ -85,35 +85,107 @@
         .fun-btn:last-child { margin-bottom: 0; }
 
         /* 점심 룰렛 */
-        .cat-pill { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 20px; border: 1.5px solid #ddd; font-size: 12.5px; cursor: pointer; user-select: none; margin: 0 6px 6px 0; }
+        .cat-pill { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 20px; border: 1.5px solid #ddd; font-size: 12.5px; cursor: pointer; user-select: none; margin: 0 6px 6px 0; transition: .12s; }
+        .cat-pill:hover { background: #f7f7f7; }
         .cat-pill input { accent-color: #4a90e2; }
-        #lunchResult { font-size: 22px; font-weight: 700; color: #2c3e50; }
+        .lunch-result-card { background: linear-gradient(135deg, #fff4e6, #ffe4c4); border-radius: 14px; padding: 30px 12px; text-align: center; position: relative; overflow: hidden; margin-bottom: 14px; }
+        .lunch-spin-icon { font-size: 30px; display: inline-block; margin-bottom: 8px; }
+        .lunch-spin-icon.spinning { animation: lunchSpin .45s linear infinite; }
+        @keyframes lunchSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        #lunchResult { font-size: 24px; font-weight: 800; color: #c9691a; }
+        .lunch-confetti { position: absolute; font-size: 18px; pointer-events: none; animation: lunchConfettiUp .9s ease-out forwards; left: 50%; top: 60%; }
+        @keyframes lunchConfettiUp { from { transform: translate(-50%,0) scale(1); opacity: 1; } to { transform: translate(-50%,-70px) scale(1.4); opacity: 0; } }
 
-        /* 디데이 풀스크린 */
-        #ddayFullscreen { position: fixed; inset: 0; background: #1c2530; z-index: 99998; display: none; align-items: center; justify-content: center; flex-direction: column; color: #fff; text-align: center; padding: 20px; }
-        #ddayFullscreen .dday-num { font-size: 84px; font-weight: 800; margin-bottom: 14px; }
-        #ddayFullscreen .dday-title { font-size: 22px; margin-bottom: 8px; }
-        #ddayFullscreen .dday-date { font-size: 14px; color: #99a; margin-bottom: 30px; }
-        #ddayFullscreen button { padding: 11px 24px; border-radius: 8px; border: none; background: #4a90e2; color: #fff; font-weight: 700; cursor: pointer; font-size: 14px; }
+        /* 상단 디데이 배너 */
+        .dday-banner { position: relative; border-radius: 14px; overflow: hidden; margin-bottom: 16px; min-height: 118px; background-size: cover; background-position: center; box-shadow: 0 6px 18px rgba(0,0,0,.15); }
+        .dday-banner-overlay { position: relative; z-index: 1; height: 100%; min-height: 118px; display: flex; align-items: center; justify-content: space-between; padding: 20px 24px; }
+        .dday-banner.has-image .dday-banner-overlay { background: linear-gradient(90deg, rgba(0,0,0,.6), rgba(0,0,0,.15)); }
+        .dday-banner-content { color: #fff; }
+        .dday-banner-num { font-size: 40px; font-weight: 800; line-height: 1; text-shadow: 0 2px 8px rgba(0,0,0,.35); }
+        .dday-banner-title { font-size: 17px; font-weight: 700; margin-top: 6px; text-shadow: 0 1px 4px rgba(0,0,0,.35); }
+        .dday-banner-date { font-size: 12px; opacity: .85; margin-top: 2px; }
+        .dday-banner-edit { background: rgba(255,255,255,.2); border: 1px solid rgba(255,255,255,.4); color: #fff; padding: 8px 14px; border-radius: 8px; font-size: 12px; cursor: pointer; flex-shrink: 0; }
+        .dday-banner-edit:hover { background: rgba(255,255,255,.32); }
+        .dday-banner.empty { cursor: pointer; }
+        .dday-banner.empty .dday-banner-content { color: #eee; font-size: 13.5px; font-weight: 600; }
 
-        /* 디데이 선택 목록 */
-        .dday-pick-item { display: flex; align-items: center; gap: 10px; padding: 10px 8px; border-radius: 8px; cursor: pointer; border-bottom: 1px solid #f0f0f0; }
-        .dday-pick-item:hover { background: #f5f5f5; }
-        .dday-pick-badge { flex-shrink: 0; font-size: 11px; font-weight: 700; color: #fff; background: #4a90e2; padding: 3px 8px; border-radius: 20px; min-width: 40px; text-align: center; }
-        .dday-pick-title { font-size: 13.5px; font-weight: 600; color: #222; flex: 1; }
-        .dday-pick-date { font-size: 11px; color: #999; }
 
         /* 체스 */
-        .chess-board { display: grid; grid-template-columns: repeat(8, 38px); grid-template-rows: repeat(8, 38px); border: 2px solid #2c3e50; border-radius: 4px; overflow: hidden; margin: 0 auto; }
-        .chess-sq { display: flex; align-items: center; justify-content: center; font-size: 26px; cursor: pointer; position: relative; user-select: none; }
-        .chess-sq.light { background: #ebecd0; }
-        .chess-sq.dark { background: #779556; }
-        .chess-sq.selected { outline: 3px solid #4a90e2; outline-offset: -3px; }
-        .chess-sq.hint::after { content: ''; position: absolute; width: 12px; height: 12px; border-radius: 50%; background: rgba(74,144,226,0.55); }
-        .chess-sq.hint-capture { outline: 3px solid rgba(231,76,60,0.75); outline-offset: -3px; }
-        #chessStatus { text-align: center; font-size: 13.5px; font-weight: 700; color: #444; margin-bottom: 10px; min-height: 18px; }
-        .chess-controls { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; }
+        .chess-modal-box { width: 640px; max-width: 95vw; }
+        .chess-layout { display: flex; gap: 20px; align-items: flex-start; }
+        .chess-main { flex: 0 0 auto; }
+        .chess-side { flex: 1; min-width: 170px; display: flex; flex-direction: column; gap: 12px; }
+
+        .chess-player-row { display: flex; align-items: center; justify-content: space-between; padding: 2px 2px; }
+        .chess-player { font-size: 13px; font-weight: 700; color: #2c3e50; display: flex; align-items: center; gap: 6px; }
+        .chess-avatar { font-size: 19px; }
+        .chess-level-badge { background: #4a90e2; color: #fff; font-size: 10.5px; font-weight: 700; padding: 2px 8px; border-radius: 10px; margin-left: 2px; }
+        .chess-captured { display: flex; gap: 0px; font-size: 15px; min-height: 18px; opacity: 0.8; letter-spacing: -2px; }
+
+        .chess-board-wrap { background: linear-gradient(135deg, #4a3a2c, #241b14); padding: 12px; border-radius: 10px; box-shadow: 0 10px 28px rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,255,255,.06); margin: 6px 0; }
+        .chess-board { display: grid; grid-template-columns: repeat(8, 46px); grid-template-rows: repeat(8, 46px); border-radius: 4px; overflow: hidden; box-shadow: 0 4px 16px rgba(0,0,0,.45); }
+        .chess-sq { display: flex; align-items: center; justify-content: center; font-size: 32px; cursor: pointer; position: relative; user-select: none; transition: background-color .12s; }
+        .chess-sq.light { background: #f0d9b5; }
+        .chess-sq.dark { background: #b58863; }
+        .chess-sq .coord-file, .chess-sq .coord-rank { position: absolute; font-size: 9px; font-weight: 800; opacity: 0.55; pointer-events: none; }
+        .chess-sq.light .coord-file, .chess-sq.light .coord-rank { color: #b58863; }
+        .chess-sq.dark .coord-file, .chess-sq.dark .coord-rank { color: #f0d9b5; }
+        .coord-file { bottom: 2px; right: 3px; }
+        .coord-rank { top: 2px; left: 3px; }
+        .chess-sq.selected { box-shadow: inset 0 0 0 3px #4a90e2; }
+        .chess-sq.last-move { background-color: rgba(255, 216, 61, 0.5) !important; }
+        .chess-sq.in-check { background: radial-gradient(circle, rgba(255,50,50,.85) 0%, rgba(255,50,50,0) 70%) !important; }
+        .chess-sq.hint::after { content: ''; position: absolute; width: 15px; height: 15px; border-radius: 50%; background: rgba(20,20,20,.28); }
+        .chess-sq.hint-capture::before { content: ''; position: absolute; inset: 3px; border-radius: 50%; border: 4px solid rgba(200,20,20,.6); }
+        .chess-piece { position: relative; z-index: 2; transition: transform .12s; }
+        .chess-sq:hover .chess-piece { transform: scale(1.08); }
+        .chess-piece.pw { color: #fbfbfb; text-shadow: -1px -1px 0 #1a1a1a, 1px -1px 0 #1a1a1a, -1px 1px 0 #1a1a1a, 1px 1px 0 #1a1a1a, 0 2px 3px rgba(0,0,0,.4); }
+        .chess-piece.pb { color: #181818; text-shadow: 0 1px 1px rgba(255,255,255,.35); }
+
+        #chessStatus.chess-status-banner { text-align: center; font-size: 13.5px; font-weight: 700; padding: 9px; border-radius: 8px; background: #eef2f7; color: #2c3e50; margin-top: 4px; transition: background .2s, color .2s; }
+        .chess-status-banner.status-check { background: #fff3cd; color: #8a6d1a; }
+        .chess-status-banner.status-win { background: #d4edda; color: #1e7e34; }
+        .chess-status-banner.status-lose { background: #f8d7da; color: #a71d2a; }
+        .chess-status-banner.status-draw { background: #e2e3e5; color: #41464b; }
+
+        .chess-controls { display: flex; gap: 8px; }
         .chess-controls select { flex: 1; padding: 8px; border-radius: 7px; border: 1px solid #ddd; font-size: 12.5px; }
+        .chess-movelist-wrap { flex: 1; background: #f8f9fa; border-radius: 8px; padding: 10px; display: flex; flex-direction: column; min-height: 180px; }
+        .chess-movelist-title { font-size: 11px; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: .04em; margin-bottom: 6px; }
+        .chess-movelist { flex: 1; overflow-y: auto; font-size: 12.5px; line-height: 1.9; color: #333; font-family: 'Consolas', 'SF Mono', monospace; max-height: 220px; }
+        .chess-move-pair { display: flex; gap: 6px; }
+        .chess-move-num { color: #999; width: 22px; flex-shrink: 0; }
+
+        @media (max-width: 700px) {
+            .chess-modal-box { width: 96vw; }
+            .chess-layout { flex-direction: column; }
+            .chess-board { grid-template-columns: repeat(8, 36px); grid-template-rows: repeat(8, 36px); }
+            .chess-sq { font-size: 25px; }
+        }
+
+        /* 오목 */
+        .omok-modal-box { width: 620px; max-width: 95vw; }
+        .omok-layout { display: flex; gap: 20px; align-items: flex-start; }
+        .omok-main { flex: 0 0 auto; }
+        .omok-side { flex: 1; min-width: 150px; display: flex; flex-direction: column; gap: 12px; }
+        .omok-board-wrap { background: linear-gradient(135deg, #e8c079, #c99b52); padding: 14px; border-radius: 10px; box-shadow: 0 10px 26px rgba(0,0,0,.3), inset 0 0 0 1px rgba(255,255,255,.15); }
+        .omok-board { display: grid; position: relative; box-shadow: 0 3px 10px rgba(0,0,0,.25); }
+        .omok-cell { position: relative; border-right: 1px solid rgba(0,0,0,.35); border-bottom: 1px solid rgba(0,0,0,.35); cursor: pointer; }
+        .omok-star::after { content: ''; position: absolute; width: 6px; height: 6px; border-radius: 50%; background: rgba(0,0,0,.5); left: 50%; top: 50%; transform: translate(-50%,-50%); }
+        .omok-stone { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,.4); }
+        .omok-stone.black { background: radial-gradient(circle at 35% 30%, #666, #000 70%); }
+        .omok-stone.white { background: radial-gradient(circle at 35% 30%, #fff, #ccc 75%); border: 1px solid rgba(0,0,0,.15); }
+        .omok-stone.last-move::after { content: ''; position: absolute; left: 50%; top: 50%; width: 30%; height: 30%; border-radius: 50%; background: #4a90e2; transform: translate(-50%,-50%); }
+        .omok-player-row { display: flex; align-items: center; justify-content: space-between; padding: 2px; }
+        .omok-status-banner { text-align: center; font-size: 13.5px; font-weight: 700; padding: 9px; border-radius: 8px; background: #eef2f7; color: #2c3e50; margin-top: 4px; }
+        .omok-status-banner.status-win { background: #d4edda; color: #1e7e34; }
+        .omok-status-banner.status-lose { background: #f8d7da; color: #a71d2a; }
+        .omok-status-banner.status-draw { background: #e2e3e5; color: #41464b; }
+        @media (max-width: 700px) {
+            .omok-modal-box { width: 96vw; }
+            .omok-layout { flex-direction: column; }
+        }
+
 
         /* 팀 메모장 */
         .chat-msg { background: #f1f3f5; border-radius: 10px; padding: 8px 12px; font-size: 13px; }
@@ -214,8 +286,8 @@
         <div class="sidebar-card">
             <h3>🎉 재미 기능</h3>
             <button class="fun-btn" onclick="renderLunchCategories(); openModal('lunchModal')">🍽 점심 메뉴 룰렛</button>
-            <button class="fun-btn" onclick="openDdayPicker()">📌 디데이 크게 보기</button>
             <button class="fun-btn" onclick="openChessGame()">♟ AI와 체스 두기</button>
+            <button class="fun-btn" onclick="openOmokGame()">⚫ AI와 오목 두기</button>
         </div>
         <div class="sidebar-card">
             <h3>💬 팀 메모장</h3>
@@ -249,7 +321,19 @@
         </div>
     </div>
 
-    <div id="calendar-wrap"><div id="calendar"></div></div>
+    <div id="calendar-wrap">
+        <div id="ddayBanner" class="dday-banner empty" onclick="openDdayBannerConfig()">
+            <div class="dday-banner-overlay">
+                <div class="dday-banner-content">
+                    <div class="dday-banner-num" id="bannerDday"></div>
+                    <div class="dday-banner-title" id="bannerTitle">📌 클릭해서 상단 배너를 설정해보세요</div>
+                    <div class="dday-banner-date" id="bannerDate"></div>
+                </div>
+                <button class="dday-banner-edit" onclick="event.stopPropagation(); openDdayBannerConfig()">✎ 설정</button>
+            </div>
+        </div>
+        <div id="calendar"></div>
+    </div>
 </div>
 
 <div id="eventModal" class="modal-overlay">
@@ -310,7 +394,8 @@
     <div class="modal-box">
         <div class="modal-hd"><h2>🍽 점심 메뉴 룰렛</h2><button class="close-x" onclick="closeModal('lunchModal')">×</button></div>
         <div id="lunchCatRow" style="margin-bottom:14px;"></div>
-        <div style="background:#f8f9fa; border-radius:10px; padding:28px 10px; text-align:center; margin-bottom:14px;">
+        <div class="lunch-result-card" id="lunchResultCard">
+            <div class="lunch-spin-icon" id="lunchSpinIcon">🍽</div>
             <div id="lunchResult">버튼을 눌러보세요</div>
         </div>
         <div class="modal-ft" style="justify-content:center;">
@@ -319,40 +404,89 @@
     </div>
 </div>
 
-<div id="ddayPickerModal" class="modal-overlay">
-    <div class="modal-box" style="width:340px;">
-        <div class="modal-hd"><h2>📌 어떤 일정을 크게 볼까요?</h2><button class="close-x" onclick="closeModal('ddayPickerModal')">×</button></div>
-        <div id="ddayPickList" style="max-height:360px; overflow-y:auto;"></div>
+<div id="chessModal" class="modal-overlay">
+    <div class="modal-box chess-modal-box">
+        <div class="modal-hd"><h2>♟ AI와 체스 두기</h2><button class="close-x" onclick="closeModal('chessModal')">×</button></div>
+        <div class="chess-layout">
+            <div class="chess-main">
+                <div class="chess-player-row">
+                    <span class="chess-player"><span class="chess-avatar">🤖</span>AI<span id="chessLevelBadge" class="chess-level-badge">Lv.9</span></span>
+                    <div class="chess-captured" id="chessCapturedByWhite"></div>
+                </div>
+                <div class="chess-board-wrap"><div class="chess-board" id="chessBoard"></div></div>
+                <div class="chess-player-row">
+                    <span class="chess-player"><span class="chess-avatar">🧑</span>당신</span>
+                    <div class="chess-captured" id="chessCapturedByBlack"></div>
+                </div>
+                <div id="chessStatus" class="chess-status-banner">당신 차례입니다</div>
+            </div>
+            <div class="chess-side">
+                <div class="chess-controls">
+                    <select id="chessLevel" onchange="updateChessLevelBadge()">
+                        <option value="1">1 - 완전 왕초보</option>
+                        <option value="2">2 - 왕초보</option>
+                        <option value="3">3 - 초급</option>
+                        <option value="4">4 - 초중급</option>
+                        <option value="5">5 - 중급</option>
+                        <option value="6">6 - 중급+</option>
+                        <option value="7">7 - 중상급</option>
+                        <option value="8">8 - 상급</option>
+                        <option value="9" selected>9 - 상급+</option>
+                        <option value="10">10 - 숙련자</option>
+                    </select>
+                    <button class="btn btn-secondary" style="padding:8px 12px; font-size:12.5px;" onclick="startNewChessGame()">새 게임</button>
+                </div>
+                <div class="chess-movelist-wrap">
+                    <div class="chess-movelist-title">기보</div>
+                    <div id="chessMoveList" class="chess-movelist"></div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
-<div id="ddayFullscreen">
-    <div class="dday-title" id="ddayTitle"></div>
-    <div class="dday-num" id="ddayNum"></div>
-    <div class="dday-date" id="ddayDate"></div>
-    <button onclick="closeDdayFullscreen()">닫기</button>
+<div id="omokModal" class="modal-overlay">
+    <div class="modal-box omok-modal-box">
+        <div class="modal-hd"><h2>⚫ AI와 오목 두기</h2><button class="close-x" onclick="closeModal('omokModal')">×</button></div>
+        <div class="omok-layout">
+            <div class="omok-main">
+                <div class="omok-player-row">
+                    <span class="chess-player"><span class="chess-avatar">🧑</span>당신(흑)</span>
+                </div>
+                <div class="omok-board-wrap"><div class="omok-board" id="omokBoard"></div></div>
+                <div class="omok-player-row">
+                    <span class="chess-player"><span class="chess-avatar">🤖</span>AI(백)<span id="omokLevelBadge" class="chess-level-badge">Lv.3</span></span>
+                </div>
+                <div id="omokStatus" class="omok-status-banner">당신 차례입니다 (흑이 먼저 둡니다)</div>
+            </div>
+            <div class="omok-side">
+                <div class="chess-controls">
+                    <select id="omokLevel" onchange="updateOmokLevelBadge()">
+                        <option value="1">1 - 왕초보</option>
+                        <option value="2">2 - 초급</option>
+                        <option value="3" selected>3 - 중급</option>
+                        <option value="4">4 - 상급</option>
+                        <option value="5">5 - 고수</option>
+                    </select>
+                    <button class="btn btn-secondary" style="padding:8px 12px; font-size:12.5px;" onclick="startNewOmokGame()">새 게임</button>
+                </div>
+                <div style="font-size:11.5px; color:#999; line-height:1.6;">가로·세로·대각선 중 하나로 5개를 먼저 이으면 승리해요.</div>
+            </div>
+        </div>
+    </div>
 </div>
 
-<div id="chessModal" class="modal-overlay">
-    <div class="modal-box" style="width:360px;">
-        <div class="modal-hd"><h2>♟ AI와 체스 두기</h2><button class="close-x" onclick="closeModal('chessModal')">×</button></div>
-        <div class="chess-controls">
-            <select id="chessLevel">
-                <option value="1">1 - 완전 왕초보</option>
-                <option value="2">2 - 왕초보</option>
-                <option value="3">3 - 초급</option>
-                <option value="4">4 - 초중급</option>
-                <option value="5">5 - 중급</option>
-                <option value="6">6 - 중급+</option>
-                <option value="7">7 - 중상급</option>
-                <option value="8">8 - 상급</option>
-                <option value="9" selected>9 - 상급+</option>
-                <option value="10">10 - 숙련자</option>
-            </select>
-            <button class="btn btn-secondary" style="padding:8px 12px; font-size:12.5px;" onclick="startNewChessGame()">새 게임</button>
+<div id="ddayBannerModal" class="modal-overlay">
+    <div class="modal-box" style="width:380px;">
+        <div class="modal-hd"><h2>📌 상단 배너 설정</h2><button class="close-x" onclick="closeModal('ddayBannerModal')">×</button></div>
+        <div class="form-row"><label>제목</label><input type="text" id="bannerTitleInput" placeholder="예: 대만여행"></div>
+        <div class="form-row"><label>날짜</label><input type="date" id="bannerDateInput"></div>
+        <div class="form-row"><label>배경 이미지 URL</label><input type="url" id="bannerImageInput" placeholder="https://... (선택)"></div>
+        <div style="font-size:11.5px; color:#999; margin:-6px 0 14px;">비워두면 제목에 어울리는 색상 테마가 자동으로 적용돼요 (예: "여행", "생일", "회식" 등)</div>
+        <div class="modal-ft">
+            <button class="btn btn-secondary" onclick="clearDdayBanner()">배너 끄기</button>
+            <button class="btn btn-primary" onclick="saveDdayBanner()">저장</button>
         </div>
-        <div id="chessStatus">당신은 백(⚪), 아래에서 위로 둡니다</div>
-        <div class="chess-board" id="chessBoard"></div>
     </div>
 </div>
 
@@ -361,7 +495,7 @@
         <div class="modal-hd"><h2>💬 팀 메모장</h2><button class="close-x" onclick="closeModal('teamChatModal')">×</button></div>
         <div id="chatMessages" style="flex:1; overflow-y:auto; max-height:320px; margin-bottom:12px; display:flex; flex-direction:column; gap:8px;"><div class="chat-empty">불러오는 중...</div></div>
         <div style="display:flex; gap:6px;">
-            <input type="text" id="chatAuthorInput" placeholder="이름" style="width:80px; padding:9px; border:1px solid #ddd; border-radius:7px; font-size:13px;">
+            <select id="chatAuthorSelect" style="width:90px; padding:9px; border:1px solid #ddd; border-radius:7px; font-size:12.5px;"></select>
             <input type="text" id="chatTextInput" placeholder="메모 남기기..." style="flex:1; padding:9px; border:1px solid #ddd; border-radius:7px; font-size:13px;" onkeydown="if(event.key==='Enter') sendTeamMessage()">
             <button class="btn btn-primary" style="padding:9px 14px;" onclick="sendTeamMessage()">전송</button>
         </div>
@@ -627,19 +761,35 @@ const LUNCH_FOODS = {
 function renderLunchCategories() {
     const row = document.getElementById('lunchCatRow');
     if (row.childElementCount) return;
+    const CAT_ICONS = { '한식': '🍚', '분식': '🍢', '중식': '🥢', '일식': '🍣', '양식': '🍝' };
     Object.keys(LUNCH_FOODS).forEach(cat => {
         const label = document.createElement('label');
         label.className = 'cat-pill';
-        label.innerHTML = `<input type="checkbox" class="lunch-cat-cb" value="${cat}" checked>${cat}`;
+        label.innerHTML = `<input type="checkbox" class="lunch-cat-cb" value="${cat}" checked>${CAT_ICONS[cat] || ''} ${cat}`;
         row.appendChild(label);
     });
 }
+function spinLunchConfetti() {
+    const card = document.getElementById('lunchResultCard');
+    const emojis = ['🎉','✨','😋','🍽️'];
+    for (let i = 0; i < 5; i++) {
+        const span = document.createElement('span');
+        span.className = 'lunch-confetti';
+        span.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+        span.style.left = (30 + Math.random() * 40) + '%';
+        card.appendChild(span);
+        setTimeout(() => span.remove(), 950);
+    }
+}
+
 function spinLunchRoulette() {
     const checked = Array.from(document.querySelectorAll('.lunch-cat-cb:checked')).map(c => c.value);
     let pool = [];
     checked.forEach(c => { pool = pool.concat(LUNCH_FOODS[c] || []); });
     const resultEl = document.getElementById('lunchResult');
+    const iconEl = document.getElementById('lunchSpinIcon');
     if (pool.length === 0) { resultEl.textContent = '카테고리를 하나 이상 선택하세요'; return; }
+    iconEl.classList.add('spinning');
     let count = 0; const maxCount = 18;
     const interval = setInterval(() => {
         resultEl.textContent = pool[Math.floor(Math.random() * pool.length)];
@@ -647,76 +797,138 @@ function spinLunchRoulette() {
         if (count >= maxCount) {
             clearInterval(interval);
             resultEl.textContent = pool[Math.floor(Math.random() * pool.length)];
+            iconEl.classList.remove('spinning');
+            spinLunchConfetti();
         }
     }, 80);
 }
 
-// ── 디데이 크게 보기 ──
-function getUpcomingList() {
-    const todayDate = new Date(fmtDate(new Date()) + 'T00:00:00');
-    return (lastRawEvents || [])
-        .filter(e => !e.completed)
-        .map(e => {
-            const startDateStr = (e.start || '').split('T')[0];
-            const d = new Date(startDateStr + 'T00:00:00');
-            const diffDays = Math.round((d - todayDate) / 86400000);
-            return { title: e.title, dateStr: startDateStr, diffDays };
-        })
-        .filter(it => it.dateStr && it.diffDays >= 0)
-        .sort((a, b) => a.diffDays - b.diffDays);
-}
+// ── 상단 디데이 배너 ──
+let ddayBanner = null; // { title, date, imageUrl }
 
-function openDdayPicker() {
-    const upcoming = getUpcomingList();
-    const list = document.getElementById('ddayPickList');
-    if (upcoming.length === 0) {
-        list.innerHTML = '<div class="upcoming-empty">다가오는 일정이 없어요 🎉</div>';
-    } else {
-        list.innerHTML = upcoming.map((it, idx) => {
-            const dday = it.diffDays === 0 ? 'D-DAY' : ('D-' + it.diffDays);
-            return `<div class="dday-pick-item" onclick="showDdayFullscreen(${idx})">
-                <span class="dday-pick-badge">${dday}</span>
-                <span class="dday-pick-title">${escHtml(it.title)}</span>
-                <span class="dday-pick-date">${it.dateStr.slice(5)}</span>
-            </div>`;
-        }).join('');
+const DDAY_THEMES = [
+    { keys: ['여행','트립','trip','바다','휴가','제주','부산'], gradient: 'linear-gradient(120deg,#36d1dc,#5b86e5)' },
+    { keys: ['생일','파티','축하'], gradient: 'linear-gradient(120deg,#ff9a9e,#fecfef)' },
+    { keys: ['회식','술','맥주','고기'], gradient: 'linear-gradient(120deg,#f7971e,#ffd200)' },
+    { keys: ['결혼','웨딩'], gradient: 'linear-gradient(120deg,#ffdde1,#ee9ca7)' },
+    { keys: ['크리스마스','연말','성탄'], gradient: 'linear-gradient(120deg,#0f2027,#2c5364)' },
+    { keys: ['시험','마감','제출','발표'], gradient: 'linear-gradient(120deg,#232526,#414345)' },
+];
+function pickDdayTheme(title) {
+    for (const theme of DDAY_THEMES) {
+        if (theme.keys.some(k => title.includes(k))) return theme.gradient;
     }
-    window._ddayPickCache = upcoming;
-    openModal('ddayPickerModal');
+    return 'linear-gradient(120deg,#4a90e2,#2c3e50)';
 }
 
-function showDdayFullscreen(idx) {
-    const top = (window._ddayPickCache || [])[idx];
-    closeModal('ddayPickerModal');
-    if (!top) return;
-    document.getElementById('ddayTitle').textContent = top.title;
-    document.getElementById('ddayNum').textContent = top.diffDays === 0 ? 'D-DAY' : ('D-' + top.diffDays);
-    document.getElementById('ddayDate').textContent = top.dateStr;
-    document.getElementById('ddayFullscreen').style.display = 'flex';
+function renderDdayBanner() {
+    const el = document.getElementById('ddayBanner');
+    if (!ddayBanner || !ddayBanner.title || !ddayBanner.date) {
+        el.className = 'dday-banner empty';
+        el.style.backgroundImage = '';
+        document.getElementById('bannerDday').textContent = '';
+        document.getElementById('bannerTitle').textContent = '📌 클릭해서 상단 배너를 설정해보세요';
+        document.getElementById('bannerDate').textContent = '';
+        return;
+    }
+    const todayDate = new Date(fmtDate(new Date()) + 'T00:00:00');
+    const target = new Date(ddayBanner.date + 'T00:00:00');
+    const diffDays = Math.round((target - todayDate) / 86400000);
+    const ddayText = diffDays === 0 ? 'D-DAY' : (diffDays > 0 ? ('D-' + diffDays) : ('D+' + Math.abs(diffDays)));
+
+    el.className = 'dday-banner' + (ddayBanner.imageUrl ? ' has-image' : '');
+    el.style.backgroundImage = ddayBanner.imageUrl ? `url("${ddayBanner.imageUrl}")` : pickDdayTheme(ddayBanner.title);
+    document.getElementById('bannerDday').textContent = ddayText;
+    document.getElementById('bannerTitle').textContent = ddayBanner.title;
+    document.getElementById('bannerDate').textContent = ddayBanner.date;
 }
-function closeDdayFullscreen() { document.getElementById('ddayFullscreen').style.display = 'none'; }
+
+function openDdayBannerConfig() {
+    document.getElementById('bannerTitleInput').value = ddayBanner ? ddayBanner.title : '';
+    document.getElementById('bannerDateInput').value = ddayBanner ? ddayBanner.date : '';
+    document.getElementById('bannerImageInput').value = ddayBanner ? (ddayBanner.imageUrl || '') : '';
+    openModal('ddayBannerModal');
+}
+
+async function persistDdayBanner(bannerObj) {
+    ddayBanner = bannerObj;
+    if (!isCloudSynced()) {
+        localStorage.setItem('dday_banner_c1', JSON.stringify(bannerObj));
+        renderDdayBanner();
+        return;
+    }
+    try {
+        const res = await fetch(`https://api.jsonbin.io/v3/b/${binId}/latest`, { headers: { 'X-Master-Key': apiKey } });
+        const data = await res.json();
+        await fetch(`https://api.jsonbin.io/v3/b/${binId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'X-Master-Key': apiKey },
+            body: JSON.stringify({ events: data.record.events || [], members: data.record.members || members, messages: data.record.messages || teamMessages || [], banner: bannerObj })
+        });
+    } catch(_) { /* 실패해도 화면엔 즉시 반영 */ }
+    renderDdayBanner();
+}
+
+function saveDdayBanner() {
+    const title = document.getElementById('bannerTitleInput').value.trim();
+    const date = document.getElementById('bannerDateInput').value;
+    const imageUrl = document.getElementById('bannerImageInput').value.trim();
+    if (!title || !date) { alert('제목과 날짜를 입력해주세요.'); return; }
+    closeModal('ddayBannerModal');
+    persistDdayBanner({ title, date, imageUrl: imageUrl || null });
+}
+
+function clearDdayBanner() {
+    closeModal('ddayBannerModal');
+    persistDdayBanner(null);
+}
 
 // ── AI 체스 ──
 let chessGame = null;
 let chessSelected = null;
 let chessThinking = false;
+let chessLastMove = null;
 
 const CHESS_UNICODE = {
     w: { p: '♙', n: '♘', b: '♗', r: '♖', q: '♕', k: '♔' },
     b: { p: '♟', n: '♞', b: '♝', r: '♜', q: '♛', k: '♚' }
 };
 
+function playChessTone(freq, dur) {
+    try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const o = ctx.createOscillator(); const g = ctx.createGain();
+        o.connect(g); g.connect(ctx.destination);
+        o.type = 'triangle'; o.frequency.setValueAtTime(freq, ctx.currentTime);
+        g.gain.setValueAtTime(0.16, ctx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
+        o.start(); o.stop(ctx.currentTime + dur);
+    } catch(_) {}
+}
+function playChessMoveSound() { playChessTone(520, 0.12); }
+function playChessEndSound() { playChessTone(300, 0.5); }
+
+function updateChessLevelBadge() {
+    const level = document.getElementById('chessLevel').value;
+    document.getElementById('chessLevelBadge').textContent = 'Lv.' + level;
+}
+
 function startNewChessGame() {
     chessGame = new Chess();
     chessSelected = null;
     chessThinking = false;
-    document.getElementById('chessStatus').textContent = '당신은 백(⚪), 아래에서 위로 둡니다';
+    chessLastMove = null;
+    document.getElementById('chessStatus').className = 'chess-status-banner';
+    document.getElementById('chessStatus').textContent = '당신 차례입니다 (백)';
+    updateChessLevelBadge();
     renderChessBoard();
+    renderChessMoveList();
+    renderChessCaptured();
 }
 
 function openChessGame() {
     if (!chessGame) startNewChessGame();
-    else renderChessBoard();
+    else { updateChessLevelBadge(); renderChessBoard(); renderChessMoveList(); renderChessCaptured(); }
     openModal('chessModal');
 }
 
@@ -729,6 +941,15 @@ function chessPieceAt(sq) {
     return chessGame.board()[row][file];
 }
 
+function findKingSquare(color) {
+    const board = chessGame.board();
+    for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) {
+        const p = board[r][c];
+        if (p && p.type === 'k' && p.color === color) return chessSquareName(r, c);
+    }
+    return null;
+}
+
 function renderChessBoard() {
     const boardEl = document.getElementById('chessBoard');
     boardEl.innerHTML = '';
@@ -737,6 +958,8 @@ function renderChessBoard() {
     if (chessSelected) {
         hints = chessGame.moves({ square: chessSelected, verbose: true }).map(m => m.to);
     }
+    const checkKingSq = chessGame.in_check() ? findKingSquare(chessGame.turn()) : null;
+
     for (let r = 0; r < 8; r++) {
         for (let c = 0; c < 8; c++) {
             const sq = chessSquareName(r, c);
@@ -744,12 +967,47 @@ function renderChessBoard() {
             const div = document.createElement('div');
             div.className = 'chess-sq ' + (((r + c) % 2 === 0) ? 'light' : 'dark');
             if (sq === chessSelected) div.classList.add('selected');
+            if (chessLastMove && (sq === chessLastMove.from || sq === chessLastMove.to)) div.classList.add('last-move');
+            if (sq === checkKingSq) div.classList.add('in-check');
             if (hints.includes(sq)) div.classList.add(piece ? 'hint-capture' : 'hint');
-            if (piece) div.textContent = CHESS_UNICODE[piece.color][piece.type];
+            if (piece) {
+                const pieceSpan = document.createElement('span');
+                pieceSpan.className = 'chess-piece ' + (piece.color === 'w' ? 'pw' : 'pb');
+                pieceSpan.textContent = CHESS_UNICODE[piece.color][piece.type];
+                div.appendChild(pieceSpan);
+            }
+            if (c === 0) { const rankLbl = document.createElement('span'); rankLbl.className = 'coord-rank'; rankLbl.textContent = 8 - r; div.appendChild(rankLbl); }
+            if (r === 7) { const fileLbl = document.createElement('span'); fileLbl.className = 'coord-file'; fileLbl.textContent = String.fromCharCode(97 + c); div.appendChild(fileLbl); }
             div.onclick = () => onChessSquareClick(sq);
             boardEl.appendChild(div);
         }
     }
+}
+
+function renderChessMoveList() {
+    const box = document.getElementById('chessMoveList');
+    const hist = chessGame.history();
+    if (hist.length === 0) { box.innerHTML = '<div class="upcoming-empty">아직 둔 수가 없어요</div>'; return; }
+    let html = '';
+    for (let i = 0; i < hist.length; i += 2) {
+        html += `<div class="chess-move-pair"><span class="chess-move-num">${(i/2)+1}.</span><span>${hist[i] || ''}</span><span>${hist[i+1] || ''}</span></div>`;
+    }
+    box.innerHTML = html;
+    box.scrollTop = box.scrollHeight;
+}
+
+function renderChessCaptured() {
+    const verboseHist = chessGame.history({ verbose: true });
+    const takenByWhite = []; // 백이 잡은 흑 기물
+    const takenByBlack = []; // 흑이 잡은 백 기물
+    verboseHist.forEach(m => {
+        if (m.captured) {
+            if (m.color === 'w') takenByWhite.push(CHESS_UNICODE['b'][m.captured]);
+            else takenByBlack.push(CHESS_UNICODE['w'][m.captured]);
+        }
+    });
+    document.getElementById('chessCapturedByWhite').textContent = takenByWhite.join('');
+    document.getElementById('chessCapturedByBlack').textContent = takenByBlack.join('');
 }
 
 function onChessSquareClick(sq) {
@@ -759,8 +1017,10 @@ function onChessSquareClick(sq) {
         const legalTargets = chessGame.moves({ square: chessSelected, verbose: true }).map(m => m.to);
         if (legalTargets.includes(sq)) {
             chessGame.move({ from: chessSelected, to: sq, promotion: 'q' });
+            chessLastMove = { from: chessSelected, to: sq };
             chessSelected = null;
-            renderChessBoard();
+            playChessMoveSound();
+            renderChessBoard(); renderChessMoveList(); renderChessCaptured();
             const over = checkChessGameOver();
             if (!over) {
                 document.getElementById('chessStatus').textContent = 'AI가 생각 중...';
@@ -776,16 +1036,23 @@ function onChessSquareClick(sq) {
 }
 
 function checkChessGameOver() {
+    const banner = document.getElementById('chessStatus');
     if (!chessGame.game_over()) {
-        document.getElementById('chessStatus').textContent = (chessGame.in_check() ? '체크! ' : '') + (chessGame.turn() === 'w' ? '당신' : 'AI') + ' 차례';
+        banner.className = 'chess-status-banner' + (chessGame.in_check() ? ' status-check' : '');
+        banner.textContent = (chessGame.in_check() ? '체크! ' : '') + (chessGame.turn() === 'w' ? '당신' : 'AI') + ' 차례';
         return false;
     }
+    playChessEndSound();
     if (chessGame.in_checkmate()) {
-        document.getElementById('chessStatus').textContent = (chessGame.turn() === 'w' ? 'AI 승리! (체크메이트)' : '당신 승리! 🎉 (체크메이트)');
+        const youWon = chessGame.turn() !== 'w';
+        banner.className = 'chess-status-banner ' + (youWon ? 'status-win' : 'status-lose');
+        banner.textContent = youWon ? '당신 승리! 🎉 (체크메이트)' : 'AI 승리! (체크메이트)';
     } else if (chessGame.in_stalemate()) {
-        document.getElementById('chessStatus').textContent = '무승부 (스테일메이트)';
+        banner.className = 'chess-status-banner status-draw';
+        banner.textContent = '무승부 (스테일메이트)';
     } else {
-        document.getElementById('chessStatus').textContent = '무승부';
+        banner.className = 'chess-status-banner status-draw';
+        banner.textContent = '무승부';
     }
     return true;
 }
@@ -858,11 +1125,172 @@ function getChessAiMove(game, level) {
 
 function makeAiMove() {
     const level = parseInt(document.getElementById('chessLevel').value, 10) || 5;
-    const move = getChessAiMove(chessGame, level);
-    if (move) chessGame.move(move);
+    const verboseMoves = chessGame.moves({ verbose: true });
+    const moveSan = getChessAiMove(chessGame, level);
+    const matched = verboseMoves.find(m => m.san === moveSan);
+    if (moveSan) chessGame.move(moveSan);
+    if (matched) chessLastMove = { from: matched.from, to: matched.to };
     chessThinking = false;
-    renderChessBoard();
+    playChessMoveSound();
+    renderChessBoard(); renderChessMoveList(); renderChessCaptured();
     checkChessGameOver();
+}
+
+// ── AI 오목 ──
+const OMOK_SIZE = 15;
+const OMOK_CELL_PX = 30;
+let omokBoard = [];
+let omokTurn = 'b'; // 흑(사람)이 먼저 둠
+let omokOver = false;
+let omokThinking = false;
+let omokLastMove = null;
+
+function updateOmokLevelBadge() {
+    document.getElementById('omokLevelBadge').textContent = 'Lv.' + document.getElementById('omokLevel').value;
+}
+
+function startNewOmokGame() {
+    omokBoard = Array.from({ length: OMOK_SIZE }, () => Array(OMOK_SIZE).fill(null));
+    omokTurn = 'b';
+    omokOver = false;
+    omokThinking = false;
+    omokLastMove = null;
+    updateOmokLevelBadge();
+    document.getElementById('omokStatus').className = 'omok-status-banner';
+    document.getElementById('omokStatus').textContent = '당신 차례입니다 (흑이 먼저 둡니다)';
+    renderOmokBoard();
+}
+
+function openOmokGame() {
+    if (omokBoard.length === 0) startNewOmokGame();
+    else { updateOmokLevelBadge(); renderOmokBoard(); }
+    openModal('omokModal');
+}
+
+function omokInBounds(r, c) { return r >= 0 && r < OMOK_SIZE && c >= 0 && c < OMOK_SIZE; }
+
+function omokCheckWin(r, c, color) {
+    const dirs = [[0,1],[1,0],[1,1],[1,-1]];
+    for (const [dr, dc] of dirs) {
+        let count = 1;
+        let rr = r + dr, cc = c + dc;
+        while (omokInBounds(rr, cc) && omokBoard[rr][cc] === color) { count++; rr += dr; cc += dc; }
+        rr = r - dr; cc = c - dc;
+        while (omokInBounds(rr, cc) && omokBoard[rr][cc] === color) { count++; rr -= dr; cc -= dc; }
+        if (count >= 5) return true;
+    }
+    return false;
+}
+
+function renderOmokBoard() {
+    const boardEl = document.getElementById('omokBoard');
+    boardEl.innerHTML = '';
+    boardEl.style.gridTemplateColumns = `repeat(${OMOK_SIZE}, ${OMOK_CELL_PX}px)`;
+    boardEl.style.gridTemplateRows = `repeat(${OMOK_SIZE}, ${OMOK_CELL_PX}px)`;
+    const starPoints = new Set(['3,3','3,11','11,3','11,11','7,7']);
+    for (let r = 0; r < OMOK_SIZE; r++) {
+        for (let c = 0; c < OMOK_SIZE; c++) {
+            const cell = document.createElement('div');
+            cell.className = 'omok-cell';
+            if (starPoints.has(r + ',' + c) && !omokBoard[r][c]) cell.classList.add('omok-star');
+            const stoneColor = omokBoard[r][c];
+            if (stoneColor) {
+                const stone = document.createElement('div');
+                stone.className = 'omok-stone ' + (stoneColor === 'b' ? 'black' : 'white');
+                stone.style.width = (OMOK_CELL_PX - 4) + 'px';
+                stone.style.height = (OMOK_CELL_PX - 4) + 'px';
+                if (omokLastMove && omokLastMove.r === r && omokLastMove.c === c) stone.classList.add('last-move');
+                cell.appendChild(stone);
+            }
+            cell.onclick = () => onOmokCellClick(r, c);
+            boardEl.appendChild(cell);
+        }
+    }
+}
+
+function onOmokCellClick(r, c) {
+    if (omokThinking || omokOver || omokTurn !== 'b' || omokBoard[r][c]) return;
+    omokBoard[r][c] = 'b';
+    omokLastMove = { r, c };
+    renderOmokBoard();
+    if (omokCheckWin(r, c, 'b')) { finishOmokGame('당신 승리! 🎉 (오목 완성)', 'status-win'); return; }
+    if (isOmokBoardFull()) { finishOmokGame('무승부 (보드가 가득 찼어요)', 'status-draw'); return; }
+    omokTurn = 'w';
+    document.getElementById('omokStatus').textContent = 'AI가 생각 중...';
+    omokThinking = true;
+    setTimeout(makeOmokAiMove, 400);
+}
+
+function isOmokBoardFull() {
+    for (let r = 0; r < OMOK_SIZE; r++) for (let c = 0; c < OMOK_SIZE; c++) if (!omokBoard[r][c]) return false;
+    return true;
+}
+
+function finishOmokGame(msg, cls) {
+    omokOver = true;
+    omokThinking = false;
+    playChessEndSound();
+    const banner = document.getElementById('omokStatus');
+    banner.className = 'omok-status-banner ' + cls;
+    banner.textContent = msg;
+}
+
+function omokEvalDirection(r, c, dr, dc, color) {
+    let count = 1, openEnds = 0;
+    let rr = r + dr, cc = c + dc;
+    while (omokInBounds(rr, cc) && omokBoard[rr][cc] === color) { count++; rr += dr; cc += dc; }
+    if (omokInBounds(rr, cc) && omokBoard[rr][cc] === null) openEnds++;
+    rr = r - dr; cc = c - dc;
+    while (omokInBounds(rr, cc) && omokBoard[rr][cc] === color) { count++; rr -= dr; cc -= dc; }
+    if (omokInBounds(rr, cc) && omokBoard[rr][cc] === null) openEnds++;
+
+    if (count >= 5) return 100000;
+    if (count === 4) return openEnds >= 1 ? 10000 : 500;
+    if (count === 3) return openEnds === 2 ? 2000 : (openEnds === 1 ? 200 : 0);
+    if (count === 2) return openEnds === 2 ? 100 : (openEnds === 1 ? 20 : 0);
+    return openEnds === 2 ? 5 : 1;
+}
+
+function omokLineScore(r, c, color) {
+    omokBoard[r][c] = color;
+    let score = 0;
+    const dirs = [[0,1],[1,0],[1,1],[1,-1]];
+    for (const [dr, dc] of dirs) score += omokEvalDirection(r, c, dr, dc, color);
+    omokBoard[r][c] = null;
+    return score;
+}
+
+function getOmokAiMove(level) {
+    const candidates = [];
+    for (let r = 0; r < OMOK_SIZE; r++) for (let c = 0; c < OMOK_SIZE; c++) if (!omokBoard[r][c]) candidates.push([r, c]);
+    if (candidates.length === 0) return null;
+
+    if (level === 1 && Math.random() < 0.7) return candidates[Math.floor(Math.random() * candidates.length)];
+
+    let best = null, bestScore = -Infinity;
+    for (const [r, c] of candidates) {
+        const offense = omokLineScore(r, c, 'w');
+        const defense = level >= 2 ? omokLineScore(r, c, 'b') : 0;
+        const weight = level === 1 ? 0.5 : level === 2 ? 0.8 : 1;
+        const total = offense + defense * weight * 0.95;
+        if (total > bestScore) { bestScore = total; best = [r, c]; }
+    }
+    return best;
+}
+
+function makeOmokAiMove() {
+    const level = parseInt(document.getElementById('omokLevel').value, 10) || 3;
+    const move = getOmokAiMove(level);
+    if (!move) { omokThinking = false; return; }
+    const [r, c] = move;
+    omokBoard[r][c] = 'w';
+    omokLastMove = { r, c };
+    omokThinking = false;
+    renderOmokBoard();
+    if (omokCheckWin(r, c, 'w')) { finishOmokGame('AI 승리! (오목 완성)', 'status-lose'); return; }
+    if (isOmokBoardFull()) { finishOmokGame('무승부 (보드가 가득 찼어요)', 'status-draw'); return; }
+    omokTurn = 'b';
+    document.getElementById('omokStatus').textContent = '당신 차례입니다';
 }
 
 // ── 팀 메모장 ──
@@ -876,8 +1304,21 @@ function renderChatMessages() {
     box.scrollTop = box.scrollHeight;
 }
 
+function renderChatAuthorOptions() {
+    const sel = document.getElementById('chatAuthorSelect');
+    const lastPicked = localStorage.getItem('chat_author_c1') || '';
+    if (!members || members.length === 0) {
+        sel.innerHTML = '<option value="">멤버 없음</option>';
+        sel.disabled = true;
+        return;
+    }
+    sel.disabled = false;
+    sel.innerHTML = members.map(m => `<option value="${escHtml(m.name)}">${escHtml(m.name)}</option>`).join('');
+    if (members.some(m => m.name === lastPicked)) sel.value = lastPicked;
+}
+
 async function openTeamChat() {
-    document.getElementById('chatAuthorInput').value = localStorage.getItem('chat_author_c1') || '';
+    renderChatAuthorOptions();
     document.getElementById('chatMessages').innerHTML = '<div class="chat-empty">불러오는 중...</div>';
     openModal('teamChatModal');
     if (isCloudSynced()) {
@@ -893,10 +1334,11 @@ async function openTeamChat() {
 }
 
 async function sendTeamMessage() {
-    const authorInput = document.getElementById('chatAuthorInput');
+    const authorSelect = document.getElementById('chatAuthorSelect');
     const textInput = document.getElementById('chatTextInput');
-    const author = authorInput.value.trim() || '익명';
+    const author = authorSelect.value;
     const text = textInput.value.trim();
+    if (!author) { alert('멤버를 먼저 사이드바에서 추가해주세요.'); return; }
     if (!text) return;
     localStorage.setItem('chat_author_c1', author);
     const msg = { id: Date.now().toString(), author, text, ts: Date.now() };
@@ -919,7 +1361,7 @@ async function sendTeamMessage() {
         await fetch(`https://api.jsonbin.io/v3/b/${binId}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json', 'X-Master-Key': apiKey },
-            body: JSON.stringify({ events: data.record.events || [], members: data.record.members || members, messages: cloudMessages })
+            body: JSON.stringify({ events: data.record.events || [], members: data.record.members || members, messages: cloudMessages, banner: data.record.banner !== undefined ? data.record.banner : ddayBanner })
         });
         teamMessages = cloudMessages;
         renderChatMessages();
@@ -1037,6 +1479,7 @@ async function syncActionToCloud(actionType, eventData) {
         let cloudEvents = data.record.events || [];
         let cloudMembers = data.record.members || members;
         let cloudMessages = data.record.messages || teamMessages || [];
+        let cloudBanner = data.record.banner !== undefined ? data.record.banner : ddayBanner;
 
         if (actionType === 'ADD' || actionType === 'UPDATE') {
             let idx = cloudEvents.findIndex(e => e.id === eventData.id);
@@ -1055,7 +1498,7 @@ async function syncActionToCloud(actionType, eventData) {
         await fetch(`https://api.jsonbin.io/v3/b/${binId}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json', 'X-Master-Key': apiKey },
-            body: JSON.stringify({ events: cloudEvents, members: cloudMembers, messages: cloudMessages })
+            body: JSON.stringify({ events: cloudEvents, members: cloudMembers, messages: cloudMessages, banner: cloudBanner })
         });
 
         localStorage.setItem('myAdvancedEvents_c1', JSON.stringify(cloudEvents));
@@ -1133,7 +1576,7 @@ function renderUpcomingSummary(events) {
 async function createNewBin() {
     const key = document.getElementById('apiKeyInput').value.trim(); if (!key) { alert('API Key를 먼저 입력해주세요.'); return; }
     try {
-        const res = await fetch('https://api.jsonbin.io/v3/b', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Master-Key': key, 'X-Bin-Name': 'TeamCalendar' }, body: JSON.stringify({ events: [], members, messages: [] }) });
+        const res = await fetch('https://api.jsonbin.io/v3/b', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Master-Key': key, 'X-Bin-Name': 'TeamCalendar' }, body: JSON.stringify({ events: [], members, messages: [], banner: null }) });
         const data = await res.json(); document.getElementById('binIdInput').value = data.metadata.id; alert('DB 생성 완료!\n[저장 및 연동 시작]을 눌러주세요.');
     } catch(_) { alert('생성 실패. API Key 확인 요망.'); }
 }
@@ -1159,10 +1602,12 @@ async function initCalendarApp() {
             const data = await resp.json();
             savedEvents = data.record.events || [];
             teamMessages = data.record.messages || [];
+            ddayBanner = data.record.banner || null;
             if (data.record.members) { members = data.record.members; saveMembers(); renderMembers(); }
             document.getElementById('sync-status-txt').textContent = '☁️ 동기화 켜짐';
-        } catch(_) { document.getElementById('sync-status-txt').textContent = '⚠️ 연결 실패 (로컬)'; savedEvents = JSON.parse(localStorage.getItem('myAdvancedEvents_c1') || '[]'); teamMessages = JSON.parse(localStorage.getItem('teamMessages_c1') || '[]'); }
-    } else { savedEvents = JSON.parse(localStorage.getItem('myAdvancedEvents_c1') || '[]'); teamMessages = JSON.parse(localStorage.getItem('teamMessages_c1') || '[]'); }
+        } catch(_) { document.getElementById('sync-status-txt').textContent = '⚠️ 연결 실패 (로컬)'; savedEvents = JSON.parse(localStorage.getItem('myAdvancedEvents_c1') || '[]'); teamMessages = JSON.parse(localStorage.getItem('teamMessages_c1') || '[]'); ddayBanner = JSON.parse(localStorage.getItem('dday_banner_c1') || 'null'); }
+    } else { savedEvents = JSON.parse(localStorage.getItem('myAdvancedEvents_c1') || '[]'); teamMessages = JSON.parse(localStorage.getItem('teamMessages_c1') || '[]'); ddayBanner = JSON.parse(localStorage.getItem('dday_banner_c1') || 'null'); }
+    renderDdayBanner();
 
     const calEl = document.getElementById('calendar');
     calendar = new FullCalendar.Calendar(calEl, {
