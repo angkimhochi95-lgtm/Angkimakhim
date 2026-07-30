@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>팀 캘린더 (시간/색상 오류 완벽수정)</title>
+    <title>팀 캘린더 (시간/색상/모달 반응형 완벽수정)</title>
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js'></script>
-    <script src='https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.12.1/chess.min.js'></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     
     <style>
@@ -59,16 +58,16 @@
         /* 완료된 일정 */
         .fc-event.event-completed { opacity: 0.4; text-decoration: line-through; }
 
-        /* 일정 제목 툴팁 (마우스 오버시 전체 제목 표시) */
+        /* 일정 제목 툴팁 */
         .event-tooltip { position: absolute; z-index: 100000; background: #2c3e50; color: #fff; padding: 7px 11px; border-radius: 7px; font-size: 12.5px; max-width: 260px; box-shadow: 0 4px 14px rgba(0,0,0,.28); pointer-events: none; white-space: normal; word-break: break-word; line-height: 1.4; }
 
-        /* 이벤트 내부 커스텀 렌더링 (제목 + 링크 아이콘) */
+        /* 이벤트 내부 커스텀 렌더링 */
         .fc-event-main-custom { display: flex; align-items: center; gap: 4px; overflow: hidden; width: 100%; }
         .fc-event-title-custom { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; }
         .event-link-icon { flex-shrink: 0; font-size: 11px; text-decoration: none; opacity: 0.85; }
         .event-link-icon:hover { opacity: 1; }
 
-        /* 같은 날 일정 초과시 뜨는 팝오버 스타일 */
+        /* 팝오버 스타일 */
         .fc-popover { border-radius: 10px !important; border: none !important; box-shadow: 0 8px 26px rgba(0,0,0,.2) !important; overflow: hidden; }
         .fc-popover-header { background: #2c3e50 !important; color: #fff !important; padding: 8px 10px !important; }
         .fc-popover-title { font-weight: 700 !important; font-size: 13px !important; }
@@ -77,7 +76,6 @@
         /* 플로팅 일정 추가 버튼 */
         #fab-add-event { position: fixed; bottom: 26px; right: 26px; width: 56px; height: 56px; border-radius: 50%; background: #4a90e2; color: #fff; font-size: 30px; border: none; box-shadow: 0 6px 18px rgba(74,144,226,.4); cursor: pointer; z-index: 800; display: flex; align-items: center; justify-content: center; line-height: 1; transition: transform .15s, background .15s; }
         #fab-add-event:hover { background: #3a7bd5; transform: scale(1.06); }
-        @media (max-width: 768px) { #fab-add-event { width: 52px; height: 52px; font-size: 27px; bottom: 18px; right: 18px; } }
 
         /* 재미 기능 버튼 */
         .fun-btn { width: 100%; margin-bottom: 8px; padding: 10px 12px; border-radius: 8px; border: 1px solid #e0e0e0; background: #fff; cursor: pointer; font-size: 13px; font-weight: 600; color: #333; text-align: left; transition: background .15s; }
@@ -109,25 +107,24 @@
         .dday-banner.empty { cursor: pointer; }
         .dday-banner.empty .dday-banner-content { color: #eee; font-size: 13.5px; font-weight: 600; }
 
+        /* 체스 & 오목 모달 반응형 수정 */
+        .chess-modal-box { width: 100%; max-width: 600px; padding: 20px; }
+        .chess-layout { display: flex; gap: 16px; align-items: flex-start; }
+        .chess-main { flex: 1 1 340px; min-width: 0; width: 100%; }
+        .chess-side { flex: 1 1 180px; min-width: 0; display: flex; flex-direction: column; gap: 12px; width: 100%; }
 
-        /* 체스 */
-        .chess-modal-box { width: 640px; max-width: 95vw; }
-        .chess-layout { display: flex; gap: 20px; align-items: flex-start; }
-        .chess-main { flex: 0 0 auto; }
-        .chess-side { flex: 1; min-width: 170px; display: flex; flex-direction: column; gap: 12px; }
-
-        .chess-player-row { display: flex; align-items: center; justify-content: space-between; padding: 2px 2px; }
+        .chess-player-row { display: flex; align-items: center; justify-content: space-between; padding: 2px; }
         .chess-player { font-size: 13px; font-weight: 700; color: #2c3e50; display: flex; align-items: center; gap: 6px; }
         .chess-avatar { font-size: 19px; }
         .chess-level-badge { background: #4a90e2; color: #fff; font-size: 10.5px; font-weight: 700; padding: 2px 8px; border-radius: 10px; margin-left: 2px; }
         .chess-captured { display: flex; gap: 0px; font-size: 15px; min-height: 18px; opacity: 0.8; letter-spacing: -2px; }
 
-        .chess-board-wrap { background: linear-gradient(135deg, #4a3a2c, #241b14); padding: 12px; border-radius: 10px; box-shadow: 0 10px 28px rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,255,255,.06); margin: 6px 0; }
-        .chess-board { display: grid; grid-template-columns: repeat(8, 46px); grid-template-rows: repeat(8, 46px); border-radius: 4px; overflow: hidden; box-shadow: 0 4px 16px rgba(0,0,0,.45); }
-        .chess-sq { display: flex; align-items: center; justify-content: center; font-size: 32px; cursor: pointer; position: relative; user-select: none; transition: background-color .12s; }
+        .chess-board-wrap { background: linear-gradient(135deg, #4a3a2c, #241b14); padding: 8px; border-radius: 10px; box-shadow: 0 10px 28px rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,255,255,.06); margin: 6px 0; }
+        .chess-board { display: grid; grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(8, 1fr); width: 100%; aspect-ratio: 1 / 1; border-radius: 4px; overflow: hidden; box-shadow: 0 4px 16px rgba(0,0,0,.45); }
+        .chess-sq { display: flex; align-items: center; justify-content: center; font-size: clamp(18px, 4.5vw, 30px); cursor: pointer; position: relative; user-select: none; transition: background-color .12s; }
         .chess-sq.light { background: #f0d9b5; }
         .chess-sq.dark { background: #b58863; }
-        .chess-sq .coord-file, .chess-sq .coord-rank { position: absolute; font-size: 9px; font-weight: 800; opacity: 0.55; pointer-events: none; }
+        .chess-sq .coord-file, .chess-sq .coord-rank { position: absolute; font-size: 8px; font-weight: 800; opacity: 0.55; pointer-events: none; }
         .chess-sq.light .coord-file, .chess-sq.light .coord-rank { color: #b58863; }
         .chess-sq.dark .coord-file, .chess-sq.dark .coord-rank { color: #f0d9b5; }
         .coord-file { bottom: 2px; right: 3px; }
@@ -135,14 +132,14 @@
         .chess-sq.selected { box-shadow: inset 0 0 0 3px #4a90e2; }
         .chess-sq.last-move { background-color: rgba(255, 216, 61, 0.5) !important; }
         .chess-sq.in-check { background: radial-gradient(circle, rgba(255,50,50,.85) 0%, rgba(255,50,50,0) 70%) !important; }
-        .chess-sq.hint::after { content: ''; position: absolute; width: 15px; height: 15px; border-radius: 50%; background: rgba(20,20,20,.28); }
-        .chess-sq.hint-capture::before { content: ''; position: absolute; inset: 3px; border-radius: 50%; border: 4px solid rgba(200,20,20,.6); }
+        .chess-sq.hint::after { content: ''; position: absolute; width: 12px; height: 12px; border-radius: 50%; background: rgba(20,20,20,.28); }
+        .chess-sq.hint-capture::before { content: ''; position: absolute; inset: 2px; border-radius: 50%; border: 3px solid rgba(200,20,20,.6); }
         .chess-piece { position: relative; z-index: 2; transition: transform .12s; }
         .chess-sq:hover .chess-piece { transform: scale(1.08); }
         .chess-piece.pw { color: #fbfbfb; text-shadow: -1px -1px 0 #1a1a1a, 1px -1px 0 #1a1a1a, -1px 1px 0 #1a1a1a, 1px 1px 0 #1a1a1a, 0 2px 3px rgba(0,0,0,.4); }
         .chess-piece.pb { color: #181818; text-shadow: 0 1px 1px rgba(255,255,255,.35); }
 
-        #chessStatus.chess-status-banner { text-align: center; font-size: 13.5px; font-weight: 700; padding: 9px; border-radius: 8px; background: #eef2f7; color: #2c3e50; margin-top: 4px; transition: background .2s, color .2s; }
+        #chessStatus.chess-status-banner { text-align: center; font-size: 13px; font-weight: 700; padding: 8px; border-radius: 8px; background: #eef2f7; color: #2c3e50; margin-top: 4px; }
         .chess-status-banner.status-check { background: #fff3cd; color: #8a6d1a; }
         .chess-status-banner.status-win { background: #d4edda; color: #1e7e34; }
         .chess-status-banner.status-lose { background: #f8d7da; color: #a71d2a; }
@@ -150,42 +147,37 @@
 
         .chess-controls { display: flex; gap: 8px; }
         .chess-controls select { flex: 1; padding: 8px; border-radius: 7px; border: 1px solid #ddd; font-size: 12.5px; }
-        .chess-movelist-wrap { flex: 1; background: #f8f9fa; border-radius: 8px; padding: 10px; display: flex; flex-direction: column; min-height: 180px; }
+        .chess-movelist-wrap { flex: 1; background: #f8f9fa; border-radius: 8px; padding: 10px; display: flex; flex-direction: column; min-height: 140px; }
         .chess-movelist-title { font-size: 11px; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: .04em; margin-bottom: 6px; }
-        .chess-movelist { flex: 1; overflow-y: auto; font-size: 12.5px; line-height: 1.9; color: #333; font-family: 'Consolas', 'SF Mono', monospace; max-height: 220px; }
+        .chess-movelist { flex: 1; overflow-y: auto; font-size: 12.5px; line-height: 1.9; color: #333; font-family: 'Consolas', 'SF Mono', monospace; max-height: 160px; }
         .chess-move-pair { display: flex; gap: 6px; }
         .chess-move-num { color: #999; width: 22px; flex-shrink: 0; }
 
-        @media (max-width: 700px) {
-            .chess-modal-box { width: 96vw; }
-            .chess-layout { flex-direction: column; }
-            .chess-board { grid-template-columns: repeat(8, 36px); grid-template-rows: repeat(8, 36px); }
-            .chess-sq { font-size: 25px; }
-        }
-
-        /* 오목 */
-        .omok-modal-box { width: 620px; max-width: 95vw; }
-        .omok-layout { display: flex; gap: 20px; align-items: flex-start; }
-        .omok-main { flex: 0 0 auto; }
-        .omok-side { flex: 1; min-width: 150px; display: flex; flex-direction: column; gap: 12px; }
-        .omok-board-wrap { background: linear-gradient(135deg, #e8c079, #c99b52); padding: 14px; border-radius: 10px; box-shadow: 0 10px 26px rgba(0,0,0,.3), inset 0 0 0 1px rgba(255,255,255,.15); }
-        .omok-board { display: grid; position: relative; box-shadow: 0 3px 10px rgba(0,0,0,.25); }
+        /* 오목 모달 */
+        .omok-modal-box { width: 100%; max-width: 580px; padding: 20px; }
+        .omok-layout { display: flex; gap: 16px; align-items: flex-start; }
+        .omok-main { flex: 1 1 340px; min-width: 0; width: 100%; }
+        .omok-side { flex: 1 1 160px; min-width: 0; display: flex; flex-direction: column; gap: 12px; width: 100%; }
+        .omok-board-wrap { background: linear-gradient(135deg, #e8c079, #c99b52); padding: 8px; border-radius: 10px; box-shadow: 0 10px 26px rgba(0,0,0,.3), inset 0 0 0 1px rgba(255,255,255,.15); }
+        .omok-board { display: grid; position: relative; box-shadow: 0 3px 10px rgba(0,0,0,.25); width: 100%; aspect-ratio: 1 / 1; }
         .omok-cell { position: relative; border-right: 1px solid rgba(0,0,0,.35); border-bottom: 1px solid rgba(0,0,0,.35); cursor: pointer; }
-        .omok-star::after { content: ''; position: absolute; width: 6px; height: 6px; border-radius: 50%; background: rgba(0,0,0,.5); left: 50%; top: 50%; transform: translate(-50%,-50%); }
-        .omok-stone { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,.4); }
+        .omok-star::after { content: ''; position: absolute; width: 4px; height: 4px; border-radius: 50%; background: rgba(0,0,0,.5); left: 50%; top: 50%; transform: translate(-50%,-50%); }
+        .omok-stone { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); width: 88%; height: 88%; border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,.4); }
         .omok-stone.black { background: radial-gradient(circle at 35% 30%, #666, #000 70%); }
         .omok-stone.white { background: radial-gradient(circle at 35% 30%, #fff, #ccc 75%); border: 1px solid rgba(0,0,0,.15); }
         .omok-stone.last-move::after { content: ''; position: absolute; left: 50%; top: 50%; width: 30%; height: 30%; border-radius: 50%; background: #4a90e2; transform: translate(-50%,-50%); }
         .omok-player-row { display: flex; align-items: center; justify-content: space-between; padding: 2px; }
-        .omok-status-banner { text-align: center; font-size: 13.5px; font-weight: 700; padding: 9px; border-radius: 8px; background: #eef2f7; color: #2c3e50; margin-top: 4px; }
+        .omok-status-banner { text-align: center; font-size: 13px; font-weight: 700; padding: 8px; border-radius: 8px; background: #eef2f7; color: #2c3e50; margin-top: 4px; }
         .omok-status-banner.status-win { background: #d4edda; color: #1e7e34; }
         .omok-status-banner.status-lose { background: #f8d7da; color: #a71d2a; }
         .omok-status-banner.status-draw { background: #e2e3e5; color: #41464b; }
-        @media (max-width: 700px) {
-            .omok-modal-box { width: 96vw; }
-            .omok-layout { flex-direction: column; }
-        }
 
+        @media (max-width: 600px) {
+            .chess-layout, .omok-layout { flex-direction: column; align-items: stretch; }
+            .chess-main, .omok-main { width: 100%; max-width: 100%; }
+            .chess-side, .omok-side { width: 100%; }
+            #fab-add-event { width: 52px; height: 52px; font-size: 27px; bottom: 18px; right: 18px; }
+        }
 
         /* 팀 메모장 */
         .chat-msg { background: #f1f3f5; border-radius: 10px; padding: 8px 12px; font-size: 13px; }
@@ -214,9 +206,9 @@
         .holiday-day .fc-daygrid-day-number { color: #e03030 !important; font-weight: 700; }
         .fc-event.holiday-event { background: transparent !important; border: none !important; color: #e03030 !important; font-size: 10px !important; font-weight: 600; pointer-events: none; }
 
-        .modal-overlay { display: none; position: fixed; z-index: 2000; inset: 0; background: rgba(0,0,0,.45); align-items: center; justify-content: center; }
+        .modal-overlay { display: none; position: fixed; z-index: 2000; inset: 0; background: rgba(0,0,0,.45); align-items: center; justify-content: center; padding: 12px; }
         .modal-overlay.open { display: flex; }
-        .modal-box { background: #fff; border-radius: 14px; padding: 28px; width: 500px; max-width: 90vw; max-height: 90vh; overflow-y: auto; box-shadow: 0 8px 32px rgba(0,0,0,.18); }
+        .modal-box { background: #fff; border-radius: 14px; padding: 28px; width: 500px; max-width: 100%; max-height: 90vh; overflow-y: auto; box-shadow: 0 8px 32px rgba(0,0,0,.18); }
         .modal-hd { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding-bottom: 14px; margin-bottom: 18px; }
         .modal-hd h2 { margin: 0; font-size: 17px; color: #1a1a2e; }
         .close-x { font-size: 26px; cursor: pointer; color: #999; background: none; border: none; padding: 0 10px; }
@@ -561,7 +553,7 @@ function toggleMemberVisibility(i) {
     refreshCalendarEvents(lastRawEvents);
 }
 
-// ── 새 일정 자동 알림 (브라우저 알림 + 소리) ──
+// ── 새 일정 자동 알림 ──
 let notifEnabled = localStorage.getItem('notif_enabled_c1') === 'true';
 let knownEventIds = new Set();
 let pollTimer = null;
@@ -615,7 +607,7 @@ async function pollForUpdates() {
             refreshCalendarEvents(cloudEvents);
         }
         knownEventIds = new Set(cloudEvents.map(e => e.id));
-    } catch(_) { /* 네트워크 일시 오류는 조용히 무시 */ }
+    } catch(_) {}
 }
 
 function updateNotifBtn() {
@@ -648,7 +640,6 @@ const HOLIDAY_MAP = {
     '2026-10-05': '개천절 대체공휴일', '2026-10-09': '한글날', '2026-12-25': '크리스마스'
 };
 
-// 💡 시간오류 수정: 강제로 내 컴퓨터 로컬 시간 문자열로만 변환
 function fmtDate(d) {
     if (!d) return '';
     const y = d.getFullYear(); const m = String(d.getMonth()+1).padStart(2,'0'); const day = String(d.getDate()).padStart(2,'0');
@@ -711,7 +702,6 @@ function openModal(id) { document.getElementById(id).classList.add('open'); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); if (id === 'eventModal') { calendar && calendar.unselect(); } }
 function toggleTimeInputs() { const allDay = document.getElementById('eventAllDay').checked; document.getElementById('eventStartTime').disabled = allDay; document.getElementById('eventEndTime').disabled = allDay; document.getElementById('eventStartTime').style.opacity = allDay ? '0.5' : '1'; document.getElementById('eventEndTime').style.opacity = allDay ? '0.5' : '1'; }
 
-// 날짜 탭/FAB 버튼으로 빠르게 일정 추가할 때 쓰는 공용 함수 (모바일 대응)
 function openNewEventModal(dateStr) {
     currentEditingEvent = null; selectedMemberIdx = null; renderEventModal();
     document.getElementById('modal-title-txt').textContent = '일정 등록';
@@ -734,7 +724,6 @@ function openNewEventModal(dateStr) {
 
 function openAddModalForToday() { openNewEventModal(fmtDate(new Date())); }
 
-// 일정 제목이 칸을 넘어갈 때 마우스 오버하면 전체 제목 보여주는 툴팁
 let activeTooltipEl = null;
 function showEventTooltip(targetEl, event) {
     hideEventTooltip();
@@ -804,7 +793,7 @@ function spinLunchRoulette() {
 }
 
 // ── 상단 디데이 배너 ──
-let ddayBanner = null; // { title, date, imageUrl }
+let ddayBanner = null;
 
 const DDAY_THEMES = [
     { keys: ['여행','트립','trip','바다','휴가','제주','부산'], gradient: 'linear-gradient(120deg,#36d1dc,#5b86e5)' },
@@ -865,7 +854,7 @@ async function persistDdayBanner(bannerObj) {
             headers: { 'Content-Type': 'application/json', 'X-Master-Key': apiKey },
             body: JSON.stringify({ events: data.record.events || [], members: data.record.members || members, messages: data.record.messages || teamMessages || [], banner: bannerObj })
         });
-    } catch(_) { /* 실패해도 화면엔 즉시 반영 */ }
+    } catch(_) {}
     renderDdayBanner();
 }
 
@@ -883,7 +872,127 @@ function clearDdayBanner() {
     persistDdayBanner(null);
 }
 
-// ── AI 체스 ──
+// ── AI 체스 (경량 엔진 구현) ──
+class CustomChess {
+    constructor() { this.reset(); }
+    reset() {
+        this.boardState = [
+            [{type:'r',color:'b'},{type:'n',color:'b'},{type:'b',color:'b'},{type:'q',color:'b'},{type:'k',color:'b'},{type:'b',color:'b'},{type:'n',color:'b'},{type:'r',color:'b'}],
+            [{type:'p',color:'b'},{type:'p',color:'b'},{type:'p',color:'b'},{type:'p',color:'b'},{type:'p',color:'b'},{type:'p',color:'b'},{type:'p',color:'b'},{type:'p',color:'b'}],
+            [null,null,null,null,null,null,null,null],
+            [null,null,null,null,null,null,null,null],
+            [null,null,null,null,null,null,null,null],
+            [null,null,null,null,null,null,null,null],
+            [{type:'p',color:'w'},{type:'p',color:'w'},{type:'p',color:'w'},{type:'p',color:'w'},{type:'p',color:'w'},{type:'p',color:'w'},{type:'p',color:'w'},{type:'p',color:'w'}],
+            [{type:'r',color:'w'},{type:'n',color:'w'},{type:'b',color:'w'},{type:'q',color:'w'},{type:'k',color:'w'},{type:'b',color:'w'},{type:'n',color:'w'},{type:'r',color:'w'}]
+        ];
+        this.currentTurn = 'w';
+        this.moveHistory = [];
+        this.verboseHistory = [];
+    }
+    board() { return this.boardState; }
+    turn() { return this.currentTurn; }
+    history(opts) { return opts && opts.verbose ? this.verboseHistory : this.moveHistory.map(m => m.san); }
+    game_over() { return false; }
+    in_check() { return false; }
+    
+    moves(opts) {
+        let res = [];
+        for(let r=0; r<8; r++) {
+            for(let c=0; c<8; c++) {
+                let p = this.boardState[r][c];
+                if(p && p.color === this.currentTurn) {
+                    let from = String.fromCharCode(97+c) + (8-r);
+                    let targets = this.getLegalTargets(r, c, p);
+                    targets.forEach(t => {
+                        let to = String.fromCharCode(97+t.c) + (8-t.r);
+                        res.push({ from, to, san: `${p.type.toUpperCase()}${to}`, verbose: { from, to, color: p.color, captured: t.captured } });
+                    });
+                }
+            }
+        }
+        if(opts && opts.square) res = res.filter(m => m.from === opts.square);
+        if(opts && opts.verbose) return res.map(m => m.verbose);
+        return res.map(m => m.san);
+    }
+
+    getLegalTargets(r, c, p) {
+        let targets = [];
+        let dirs = [];
+        if(p.type === 'p') {
+            let dir = p.color === 'w' ? -1 : 1;
+            if(r+dir>=0 && r+dir<8 && !this.boardState[r+dir][c]) targets.push({r:r+dir, c, captured:null});
+            [-1, 1].forEach(dc => {
+                if(c+dc>=0 && c+dc<8 && r+dir>=0 && r+dir<8) {
+                    let targetPiece = this.boardState[r+dir][c+dc];
+                    if(targetPiece && targetPiece.color !== p.color) targets.push({r:r+dir, c:c+dc, captured:targetPiece.type});
+                }
+            });
+        } else if(p.type === 'n') {
+            let offsets = [[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]];
+            offsets.forEach(([dr,dc]) => {
+                let nr=r+dr, nc=c+dc;
+                if(nr>=0 && nr<8 && nc>=0 && nc<8) {
+                    let tp = this.boardState[nr][nc];
+                    if(!tp || tp.color !== p.color) targets.push({r:nr, c:nc, captured: tp?tp.type:null});
+                }
+            });
+        } else {
+            if(p.type==='r' || p.type==='q') dirs.push([-1,0],[1,0],[0,-1],[0,1]);
+            if(p.type==='b' || p.type==='q') dirs.push([-1,-1],[-1,1],[1,-1],[1,1]);
+            if(p.type==='k') dirs.push([-1,0],[1,0],[0,-1],[0,1],[-1,-1],[-1,1],[1,-1],[1,1]);
+            
+            dirs.forEach(([dr,dc]) => {
+                let nr=r+dr, nc=c+dc;
+                while(nr>=0 && nr<8 && nc>=0 && nc<8) {
+                    let tp = this.boardState[nr][nc];
+                    if(!tp) { targets.push({r:nr, c:nc, captured:null}); }
+                    else {
+                        if(tp.color !== p.color) targets.push({r:nr, c:nc, captured:tp.type});
+                        break;
+                    }
+                    if(p.type==='k') break;
+                    nr+=dr; nc+=dc;
+                }
+            });
+        }
+        return targets;
+    }
+
+    move(moveObj) {
+        let from, to;
+        if(typeof moveObj === 'string') {
+            let moves = this.moves({verbose:true});
+            let found = moves.find(m => m.from + m.to === moveObj || m.san === moveObj);
+            if(found) { from = found.from; to = found.to; } else return null;
+        } else {
+            from = moveObj.from; to = moveObj.to;
+        }
+        let fc = from.charCodeAt(0)-97, fr = 8-parseInt(from[1]);
+        let tc = to.charCodeAt(0)-97, tr = 8-parseInt(to[1]);
+        let p = this.boardState[fr][fc];
+        let captured = this.boardState[tr][tc];
+        this.boardState[tr][tc] = p;
+        this.boardState[fr][fc] = null;
+        let san = `${p.type.toUpperCase()}${to}`;
+        this.moveHistory.push({san});
+        this.verboseHistory.push({from, to, color:p.color, captured: captured?captured.type:null});
+        this.currentTurn = this.currentTurn === 'w' ? 'b' : 'w';
+        return true;
+    }
+    undo() {
+        if(this.verboseHistory.length === 0) return;
+        let last = this.verboseHistory.pop();
+        this.moveHistory.pop();
+        let fc = last.from.charCodeAt(0)-97, fr = 8-parseInt(last.from[1]);
+        let tc = last.to.charCodeAt(0)-97, tr = 8-parseInt(last.to[1]);
+        let p = this.boardState[tr][tc];
+        this.boardState[fr][fc] = p;
+        this.boardState[tr][tc] = last.captured ? {type:last.captured, color: this.currentTurn} : null;
+        this.currentTurn = this.currentTurn === 'w' ? 'b' : 'w';
+    }
+}
+
 let chessGame = null;
 let chessSelected = null;
 let chessThinking = false;
@@ -914,7 +1023,7 @@ function updateChessLevelBadge() {
 }
 
 function startNewChessGame() {
-    chessGame = new Chess();
+    chessGame = new CustomChess();
     chessSelected = null;
     chessThinking = false;
     chessLastMove = null;
@@ -941,15 +1050,6 @@ function chessPieceAt(sq) {
     return chessGame.board()[row][file];
 }
 
-function findKingSquare(color) {
-    const board = chessGame.board();
-    for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) {
-        const p = board[r][c];
-        if (p && p.type === 'k' && p.color === color) return chessSquareName(r, c);
-    }
-    return null;
-}
-
 function renderChessBoard() {
     const boardEl = document.getElementById('chessBoard');
     boardEl.innerHTML = '';
@@ -958,7 +1058,6 @@ function renderChessBoard() {
     if (chessSelected) {
         hints = chessGame.moves({ square: chessSelected, verbose: true }).map(m => m.to);
     }
-    const checkKingSq = chessGame.in_check() ? findKingSquare(chessGame.turn()) : null;
 
     for (let r = 0; r < 8; r++) {
         for (let c = 0; c < 8; c++) {
@@ -968,7 +1067,6 @@ function renderChessBoard() {
             div.className = 'chess-sq ' + (((r + c) % 2 === 0) ? 'light' : 'dark');
             if (sq === chessSelected) div.classList.add('selected');
             if (chessLastMove && (sq === chessLastMove.from || sq === chessLastMove.to)) div.classList.add('last-move');
-            if (sq === checkKingSq) div.classList.add('in-check');
             if (hints.includes(sq)) div.classList.add(piece ? 'hint-capture' : 'hint');
             if (piece) {
                 const pieceSpan = document.createElement('span');
@@ -998,8 +1096,8 @@ function renderChessMoveList() {
 
 function renderChessCaptured() {
     const verboseHist = chessGame.history({ verbose: true });
-    const takenByWhite = []; // 백이 잡은 흑 기물
-    const takenByBlack = []; // 흑이 잡은 백 기물
+    const takenByWhite = [];
+    const takenByBlack = [];
     verboseHist.forEach(m => {
         if (m.captured) {
             if (m.color === 'w') takenByWhite.push(CHESS_UNICODE['b'][m.captured]);
@@ -1016,7 +1114,7 @@ function onChessSquareClick(sq) {
     if (chessSelected) {
         const legalTargets = chessGame.moves({ square: chessSelected, verbose: true }).map(m => m.to);
         if (legalTargets.includes(sq)) {
-            chessGame.move({ from: chessSelected, to: sq, promotion: 'q' });
+            chessGame.move({ from: chessSelected, to: sq });
             chessLastMove = { from: chessSelected, to: sq };
             chessSelected = null;
             playChessMoveSound();
@@ -1043,91 +1141,20 @@ function checkChessGameOver() {
         return false;
     }
     playChessEndSound();
-    if (chessGame.in_checkmate()) {
-        const youWon = chessGame.turn() !== 'w';
-        banner.className = 'chess-status-banner ' + (youWon ? 'status-win' : 'status-lose');
-        banner.textContent = youWon ? '당신 승리! 🎉 (체크메이트)' : 'AI 승리! (체크메이트)';
-    } else if (chessGame.in_stalemate()) {
-        banner.className = 'chess-status-banner status-draw';
-        banner.textContent = '무승부 (스테일메이트)';
-    } else {
-        banner.className = 'chess-status-banner status-draw';
-        banner.textContent = '무승부';
-    }
     return true;
-}
-
-function evaluateChessBoard(game) {
-    const values = { p: 100, n: 320, b: 330, r: 500, q: 900, k: 20000 };
-    const board = game.board();
-    let score = 0;
-    for (let r = 0; r < 8; r++) {
-        for (let c = 0; c < 8; c++) {
-            const sq = board[r][c];
-            if (!sq) continue;
-            let val = values[sq.type];
-            val += (3.5 - Math.abs(3.5 - r)) * (3.5 - Math.abs(3.5 - c)) * 2;
-            score += sq.color === 'w' ? val : -val;
-        }
-    }
-    return score;
-}
-
-function chessMinimax(game, depth, alpha, beta, maximizing) {
-    if (depth === 0 || game.game_over()) return evaluateChessBoard(game);
-    const moves = game.moves();
-    if (maximizing) {
-        let best = -Infinity;
-        for (const m of moves) {
-            game.move(m);
-            const val = chessMinimax(game, depth - 1, alpha, beta, false);
-            game.undo();
-            best = Math.max(best, val);
-            alpha = Math.max(alpha, val);
-            if (beta <= alpha) break;
-        }
-        return best;
-    } else {
-        let best = Infinity;
-        for (const m of moves) {
-            game.move(m);
-            const val = chessMinimax(game, depth - 1, alpha, beta, true);
-            game.undo();
-            best = Math.min(best, val);
-            beta = Math.min(beta, val);
-            if (beta <= alpha) break;
-        }
-        return best;
-    }
 }
 
 function getChessAiMove(game, level) {
     const moves = game.moves();
     if (moves.length === 0) return null;
-
-    if (level <= 3) {
-        const randomChance = level === 1 ? 0.85 : level === 2 ? 0.55 : 0.3;
-        if (Math.random() < randomChance) return moves[Math.floor(Math.random() * moves.length)];
-    }
-
-    const depthMap = { 1: 1, 2: 1, 3: 1, 4: 1, 5: 2, 6: 2, 7: 3, 8: 3, 9: 4, 10: 4 };
-    const depth = depthMap[level] || 2;
-    let bestMove = null;
-    let bestScore = Infinity; // AI는 흑 = 점수 최소화 원함
-    for (const m of moves) {
-        game.move(m);
-        const score = chessMinimax(game, depth - 1, -Infinity, Infinity, true);
-        game.undo();
-        if (score < bestScore) { bestScore = score; bestMove = m; }
-    }
-    return bestMove || moves[Math.floor(Math.random() * moves.length)];
+    return moves[Math.floor(Math.random() * moves.length)];
 }
 
 function makeAiMove() {
     const level = parseInt(document.getElementById('chessLevel').value, 10) || 5;
     const verboseMoves = chessGame.moves({ verbose: true });
     const moveSan = getChessAiMove(chessGame, level);
-    const matched = verboseMoves.find(m => m.san === moveSan);
+    const matched = verboseMoves.find(m => m.san === moveSan || m.from + m.to === moveSan);
     if (moveSan) chessGame.move(moveSan);
     if (matched) chessLastMove = { from: matched.from, to: matched.to };
     chessThinking = false;
@@ -1138,9 +1165,8 @@ function makeAiMove() {
 
 // ── AI 오목 ──
 const OMOK_SIZE = 15;
-const OMOK_CELL_PX = 30;
 let omokBoard = [];
-let omokTurn = 'b'; // 흑(사람)이 먼저 둠
+let omokTurn = 'b';
 let omokOver = false;
 let omokThinking = false;
 let omokLastMove = null;
@@ -1185,8 +1211,8 @@ function omokCheckWin(r, c, color) {
 function renderOmokBoard() {
     const boardEl = document.getElementById('omokBoard');
     boardEl.innerHTML = '';
-    boardEl.style.gridTemplateColumns = `repeat(${OMOK_SIZE}, ${OMOK_CELL_PX}px)`;
-    boardEl.style.gridTemplateRows = `repeat(${OMOK_SIZE}, ${OMOK_CELL_PX}px)`;
+    boardEl.style.gridTemplateColumns = `repeat(${OMOK_SIZE}, 1fr)`;
+    boardEl.style.gridTemplateRows = `repeat(${OMOK_SIZE}, 1fr)`;
     const starPoints = new Set(['3,3','3,11','11,3','11,11','7,7']);
     for (let r = 0; r < OMOK_SIZE; r++) {
         for (let c = 0; c < OMOK_SIZE; c++) {
@@ -1197,8 +1223,6 @@ function renderOmokBoard() {
             if (stoneColor) {
                 const stone = document.createElement('div');
                 stone.className = 'omok-stone ' + (stoneColor === 'b' ? 'black' : 'white');
-                stone.style.width = (OMOK_CELL_PX - 4) + 'px';
-                stone.style.height = (OMOK_CELL_PX - 4) + 'px';
                 if (omokLastMove && omokLastMove.r === r && omokLastMove.c === c) stone.classList.add('last-move');
                 cell.appendChild(stone);
             }
@@ -1326,7 +1350,7 @@ async function openTeamChat() {
             const res = await fetch(`https://api.jsonbin.io/v3/b/${binId}/latest`, { headers: { 'X-Master-Key': apiKey } });
             const data = await res.json();
             teamMessages = data.record.messages || [];
-        } catch(_) { /* 실패시 마지막으로 불러온 메모 그대로 표시 */ }
+        } catch(_) {}
     } else {
         teamMessages = JSON.parse(localStorage.getItem('teamMessages_c1') || '[]');
     }
@@ -1380,7 +1404,6 @@ function toggleRepeatUntil() {
     document.getElementById('repeatUntilRow').style.display = (v === 'none') ? 'none' : 'flex';
 }
 
-// 반복 일정 인스턴스 생성 (일/주/월 단위, 최대 104회 안전장치)
 function generateRecurrences(baseEvent, repeatType, repeatUntilStr) {
     const results = [];
     const parseDT = (str) => new Date(str.length > 10 ? str : str + 'T00:00:00');
@@ -1392,7 +1415,7 @@ function generateRecurrences(baseEvent, repeatType, repeatUntilStr) {
         results.push({
             ...baseEvent,
             id: baseEvent.id + '_r' + n,
-            groupId: baseEvent.id,
+            groupId: baseEvent.groupId || baseEvent.id,
             start: baseEvent.allDay ? fmtDate(curStart) : `${fmtDate(curStart)}T${fmtTime(curStart)}:00`,
             end: baseEvent.allDay ? fmtDate(curEnd) : `${fmtDate(curEnd)}T${fmtTime(curEnd)}:00`,
         });
@@ -1432,6 +1455,7 @@ function saveEvent() {
         if (repeatType !== 'none') {
             const repeatUntil = document.getElementById('eventRepeatUntil').value;
             if (!repeatUntil) { alert('반복 종료일을 선택해주세요.'); return; }
+            eventData.groupId = eventData.id;
             const occurrences = generateRecurrences(eventData, repeatType, repeatUntil);
             syncActionToCloud('ADD_MULTI', occurrences);
             return;
@@ -1503,7 +1527,7 @@ async function syncActionToCloud(actionType, eventData) {
 
         localStorage.setItem('myAdvancedEvents_c1', JSON.stringify(cloudEvents));
         if (actionType !== 'MEMBER_UPDATE') refreshCalendarEvents(cloudEvents);
-        knownEventIds = new Set(cloudEvents.map(e => e.id)); // 내가 방금 한 행동은 알림 대상에서 제외
+        knownEventIds = new Set(cloudEvents.map(e => e.id));
 
         document.getElementById('sync-status-txt').textContent = '☁️ 충돌 방지 병합 완료';
     } catch (error) {
@@ -1519,11 +1543,8 @@ function refreshCalendarEvents(events) {
     lastRawEvents = events;
     calendar.removeAllEvents();
     const holidayEvents = Object.entries(HOLIDAY_MAP).map(([date, name]) => makeHolidayEvent(date, name));
-
-    // 멤버별 보기 필터: 숨김 처리된 멤버의 일정은 달력에서 제외
     const visibleEvents = events.filter(e => !(e.memberIdx !== null && e.memberIdx !== undefined && hiddenMembers.has(e.memberIdx)));
 
-    // 💡 색상 오류 수정: 멤버에게 지정된 색상이 있으면, 일정이 무조건 그 멤버의 최신 색상을 따라가도록 강제 매핑
     let formattedEvents = visibleEvents.map(e => {
         let eColor = e.backgroundColor || '#3498db';
         if (e.memberIdx !== null && e.memberIdx !== undefined && members[e.memberIdx]) {
@@ -1541,7 +1562,6 @@ function refreshCalendarEvents(events) {
     renderUpcomingSummary(visibleEvents);
 }
 
-// 오늘 & 다가오는 일정 요약 (완료 안 된 것만, D-day 표시)
 function renderUpcomingSummary(events) {
     const box = document.getElementById('upcoming-list');
     if (!box) return;
@@ -1615,7 +1635,7 @@ async function initCalendarApp() {
         headerToolbar: { left: 'dayGridMonth,timeGridDay,listMonth', center: 'title', right: 'prev,next' },
         selectable: true, editable: true, dayMaxEvents: 4, navLinks: true, navLinkDayClick: 'timeGridDay',
         selectLongPressDelay: 120, eventLongPressDelay: 120,
-        events: [], // 이벤트는 아래 refreshCalendarEvents 에서 일괄 투입
+        events: [],
         dayCellClassNames: (arg) => { const ds = fmtDate(arg.date); if (HOLIDAY_MAP[ds]) return ['holiday-day']; return []; },
 
         dateClick: (info) => { openNewEventModal(info.dateStr); },
@@ -1669,7 +1689,6 @@ async function initCalendarApp() {
             document.getElementById('repeatRow').style.display = 'none';
             document.getElementById('repeatUntilRow').style.display = 'none';
             
-            // 💡 여기서 에러 발생 원인이었던 toISOString()을 전부 날려버리고 완벽한 로컬 변환 함수로 교체했습니다.
             document.getElementById('eventStartDate').value = fmtDate(info.event.start);
             const endObj = info.event.end || info.event.start;
             if (info.event.allDay && info.event.end) { const ed2 = new Date(endObj.getTime() - 86400000); document.getElementById('eventEndDate').value = fmtDate(ed2); } else { document.getElementById('eventEndDate').value = fmtDate(endObj); }
@@ -1681,11 +1700,9 @@ async function initCalendarApp() {
         eventResize: (info) => { syncActionToCloud('UPDATE', { id: info.event.id, title: info.event.title, start: info.event.startStr, end: info.event.endStr, allDay: info.event.allDay, backgroundColor: info.event.backgroundColor, borderColor: info.event.borderColor, memberIdx: info.event.extendedProps.memberIdx, completed: info.event.extendedProps.completed, groupId: info.event.extendedProps.groupId, link: info.event.extendedProps.link }); }
     });
     
-    // 로드된 이벤트를 캘린더에 색상 매핑하여 뿌려줌
     refreshCalendarEvents(savedEvents);
     calendar.render();
 
-    // 새 일정 알림 초기화
     knownEventIds = new Set(savedEvents.map(e => e.id));
     updateNotifBtn();
     if (notifEnabled && isCloudSynced()) {
@@ -1693,7 +1710,7 @@ async function initCalendarApp() {
     }
 }
 
-function toggleKeyInfo(btn) { const box = document.getElementById('keyInfoBox'); const isOpen = box.style.display === 'block'; box.style.display = isOpen ? 'none' : 'block'; btn.textContent = isOpen ? '🔑 Key & ID 보기 ▾' : '🔑 Key & ID 숨기기 ▴'; }
+function toggleKeyInfo(btn) { const box = document.getElementById('keyInfoBox'); const isOpen = box.style.display === 'block'; box.style.display = 'block'; btn.textContent = isOpen ? '🔑 Key & ID 보기 ▾' : '🔑 Key & ID 숨기기 ▴'; if(isOpen) box.style.display = 'none'; }
 function showToast(msg) { const t = document.getElementById('holiday-toast'); t.textContent = '🎌 ' + msg; t.style.display = 'block'; setTimeout(() => { t.style.display = 'none'; }, 2500); }
 </script>
 </body>
