@@ -183,7 +183,6 @@
         .waiting-box { text-align: center; padding: 30px 10px; color: #888; font-size: 13px; }
         .waiting-box .spin { width: 30px; height: 30px; border: 3px solid #eee; border-top-color: #4a90e2; border-radius: 50%; margin: 0 auto 12px; animation: spin 1s linear infinite; }
 
-        /* 공개 방 목록 스타일 */
         .public-rooms-wrap { background: #f8f9fa; border-radius: 10px; padding: 12px; margin-bottom: 14px; max-height: 160px; overflow-y: auto; }
         .public-rooms-title { font-size: 12px; font-weight: 700; color: #666; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
         .public-room-item { display: flex; align-items: center; justify-content: space-between; background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 12px; margin-bottom: 6px; font-size: 12.5px; }
@@ -193,7 +192,10 @@
         .badge-chess { background: #e2e8f0; color: #2d3748; }
         .badge-omok { background: #feebc8; color: #744210; }
 
-        /* 실시간 리액션 이모티콘 팝업 */
+        /* 전적 대시보드 박스 */
+        .stats-card { background: #2c3e50; color: #fff; border-radius: 10px; padding: 12px 16px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; }
+        .stats-val { font-size: 16px; font-weight: 800; color: #f1c40f; }
+
         .reaction-bubble { position: absolute; top: 70px; left: 50%; transform: translateX(-50%); background: #2c3e50; color: #fff; padding: 8px 16px; border-radius: 20px; font-size: 14px; font-weight: 700; z-index: 3000; box-shadow: 0 4px 15px rgba(0,0,0,.25); animation: popReaction .3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
         @keyframes popReaction { from { transform: translate(-50%, 10px) scale(0.8); opacity: 0; } to { transform: translate(-50%, 0) scale(1); opacity: 1; } }
         .reaction-bar { display: flex; gap: 6px; justify-content: center; margin-top: 10px; flex-wrap: wrap; }
@@ -308,7 +310,8 @@
             <button class="fun-btn" onclick="renderLunchCategories(); openModal('lunchModal')">🍽 점심 메뉴 룰렛</button>
             <button class="fun-btn" onclick="openChessGame()">♟ AI와 체스 두기</button>
             <button class="fun-btn" onclick="openOmokGame()">⚫ AI와 오목 두기</button>
-            <button class="fun-btn" style="background:#eaf2fd; border-color:#4a90e2; color:#2c3e50;" onclick="openOnlineGameModal()">🎮 실시간 대결 (체스·오목)</button>
+            <!-- min_cal.html 내부 버튼 코드 -->
+<button class="fun-btn" style="background:#eaf2fd; border-color:#4a90e2; color:#2c3e50;" onclick="window.open('module2_online_games.html', '_blank', 'width=650,height=750')">🎮 실시간 대결 (체스·오목)</button>
         </div>
         <div class="sidebar-card">
             <h3>💬 팀 메모장</h3>
@@ -504,14 +507,28 @@
         <div class="modal-hd"><h2>🎮 실시간 온라인 대결</h2><button class="close-x" onclick="leaveRoom(); closeModal('onlineGameModal')">×</button></div>
         
         <div id="lobbyScreen">
-            <div class="form-row"><label>닉네임</label><input type="text" id="nickInput" placeholder="이름을 입력하세요"></div>
+            <div class="form-row">
+                <label>본인 멤버</label>
+                <select id="memberSelectInLobby" onchange="updateMemberStatsDisplay()"></select>
+            </div>
+
+            <!-- 나의 전적 대시보드 카드 -->
+            <div class="stats-card">
+                <div>
+                    <div style="font-size:11px; opacity:0.8;">나의 전체 전적</div>
+                    <div class="stats-val" id="myTotalStatsDisp">0승 0패 (0%)</div>
+                </div>
+                <div style="text-align:right;">
+                    <select id="opponentSelectForStats" onchange="updateVsStatsDisplay()" style="padding:4px; font-size:11px; border-radius:4px; border:none; outline:none;"></select>
+                    <div style="font-size:12px; font-weight:bold; color:#2ecc71; margin-top:2px;" id="vsStatsDisp">상대전적: -</div>
+                </div>
+            </div>
 
             <div class="game-choice">
                 <button id="chooseChessBtn" onclick="selectGameType('chess')">♟ 체스</button>
                 <button id="chooseOmokBtn" onclick="selectGameType('omok')">⚫ 오목</button>
             </div>
 
-            <!-- 공개 방 대기 목록 영역 -->
             <div class="public-rooms-wrap">
                 <div class="public-rooms-title">
                     <span>📢 대기/진행 중인 공개 방</span>
@@ -1482,10 +1499,71 @@ let mySlot = null; // 'p1' | 'p2'
 let myNick = '';
 let roomListenerRef = null;
 let publicRoomsListenerRef = null;
+let globalStats = {};
 
 function openOnlineGameModal() {
+    renderLobbyMemberOptions();
     openModal('onlineGameModal');
     listenPublicRooms();
+    listenGlobalStats();
+}
+
+function renderLobbyMemberOptions() {
+    const sel = document.getElementById('memberSelectInLobby');
+    const vsSel = document.getElementById('opponentSelectForStats');
+    if (!members || members.length === 0) {
+        sel.innerHTML = '<option value="">멤버를 먼저 추가해주세요</option>';
+        vsSel.innerHTML = '<option value="">상대 선택</option>';
+        return;
+    }
+    sel.innerHTML = members.map(m => `<option value="${escHtml(m.name)}">${escHtml(m.name)}</option>`).join('');
+    vsSel.innerHTML = '<option value="">상대 선택</option>' + members.map(m => `<option value="${escHtml(m.name)}">${escHtml(m.name)}</option>`).join('');
+    myNick = sel.value;
+}
+
+// Firebase 전적 데이터 수신
+function listenGlobalStats() {
+    if (!firebaseReady) return;
+    db.ref('stats').on('value', snap => {
+        globalStats = snap.val() || {};
+        updateMemberStatsDisplay();
+    });
+}
+
+function updateMemberStatsDisplay() {
+    myNick = document.getElementById('memberSelectInLobby').value;
+    const myStats = globalStats[myNick] || { wins: 0, losses: 0, vs: {} };
+    const total = (myStats.wins || 0) + (myStats.losses || 0);
+    const winRate = total > 0 ? Math.round((myStats.wins / total) * 100) : 0;
+    
+    document.getElementById('myTotalStatsDisp').textContent = `${myStats.wins || 0}승 ${myStats.losses || 0}패 (${winRate}%)`;
+    updateVsStatsDisplay();
+}
+
+function updateVsStatsDisplay() {
+    const opp = document.getElementById('opponentSelectForStats').value;
+    if (!opp || opp === myNick) {
+        document.getElementById('vsStatsDisp').textContent = '상대전적: -';
+        return;
+    }
+    const myStats = globalStats[myNick] || { vs: {} };
+    const vsObj = (myStats.vs && myStats.vs[opp]) || { wins: 0, losses: 0 };
+    document.getElementById('vsStatsDisp').textContent = `vs ${opp}: ${vsObj.wins || 0}승 ${vsObj.losses || 0}패`;
+}
+
+// 대국 승패 결과 데이터베이스 기록 함수
+async function recordGameResult(winnerSlot, p1Name, p2Name) {
+    if (!firebaseReady || !p1Name || !p2Name) return;
+    const winnerName = winnerSlot === 'p1' ? p1Name : p2Name;
+    const loserName = winnerSlot === 'p1' ? p2Name : p1Name;
+
+    // 승자 데이터 갱신
+    await db.ref(`stats/${winnerName}/wins`).transaction(val => (val || 0) + 1);
+    await db.ref(`stats/${winnerName}/vs/${loserName}/wins`).transaction(val => (val || 0) + 1);
+
+    // 패자 데이터 갱신
+    await db.ref(`stats/${loserName}/losses`).transaction(val => (val || 0) + 1);
+    await db.ref(`stats/${loserName}/vs/${winnerName}/losses`).transaction(val => (val || 0) + 1);
 }
 
 function listenPublicRooms() {
@@ -1508,7 +1586,7 @@ function listenPublicRooms() {
             item.className = 'public-room-item';
             const badgeCls = g.type === 'chess' ? 'badge-chess' : 'badge-omok';
             const gameName = g.type === 'chess' ? '체스' : '오목';
-            const statusTxt = g.status === 'playing' ? ' (진행 중)' : ' (대기 중)';
+            const statusTxt = g.status === 'playing' ? ' (진행 중)' : (g.status === 'finished' ? ' (종료됨)' : ' (대기 중)');
             item.innerHTML = `
                 <div class="public-room-info">
                     <span class="public-room-badge ${badgeCls}">${gameName}</span>
@@ -1542,7 +1620,8 @@ function genRoomCode() {
 
 async function createRoom(isPublic = true) {
     if (!firebaseReady) { showLobbyError('서버 연결 실패'); return; }
-    myNick = document.getElementById('nickInput').value.trim() || '익명';
+    myNick = document.getElementById('memberSelectInLobby').value;
+    if (!myNick) { showLobbyError('사이드바에서 멤버를 등록/선택해주세요.'); return; }
     if (!gameType) { showLobbyError('체스 또는 오목을 먼저 선택해주세요.'); return; }
     const roomId = genRoomCode();
     const initialState = gameType === 'chess'
@@ -1558,7 +1637,8 @@ async function createRoom(isPublic = true) {
         winner: null,
         state: initialState,
         lastMove: null,
-        reaction: null
+        reaction: null,
+        recorded: false
     };
     await db.ref('games/' + roomId).set(roomData);
     currentRoomId = roomId;
@@ -1567,7 +1647,7 @@ async function createRoom(isPublic = true) {
 }
 
 async function joinPublicRoom(code) {
-    myNick = document.getElementById('nickInput').value.trim() || '익명';
+    myNick = document.getElementById('memberSelectInLobby').value;
     await processRoomJoin(code);
 }
 
@@ -1579,13 +1659,13 @@ async function joinRoomByCode() {
 
 async function processRoomJoin(code) {
     if (!firebaseReady) { showLobbyError('서버 연결 실패'); return; }
-    myNick = document.getElementById('nickInput').value.trim() || '익명';
+    myNick = document.getElementById('memberSelectInLobby').value;
+    if (!myNick) { showLobbyError('멤버를 선택해주세요.'); return; }
     try {
         const snap = await db.ref('games/' + code).get();
         if (!snap.exists()) { showLobbyError('존재하지 않는 방 코드예요.'); return; }
         const data = snap.val();
         
-        // 기존 플레이어 재접속 복구 판단
         if (data.players.p1 === myNick) {
             mySlot = 'p1';
         } else if (data.players.p2 === myNick) {
@@ -1617,7 +1697,19 @@ function copyRoomCode() {
     });
 }
 
-function leaveRoom() {
+// 승복 후 퇴장 또는 종료 후 나가기 시 방 폭파 삭제
+async function leaveRoom() {
+    if (currentRoomId && db) {
+        const snap = await db.ref('games/' + currentRoomId).get();
+        if (snap.exists()) {
+            const data = snap.val();
+            // 대국이 종료된 방이거나 승복한 상태면 방 완전히 터뜨리기(삭제)
+            if (data.status === 'finished') {
+                await db.ref('games/' + currentRoomId).remove();
+            }
+        }
+    }
+
     if (roomListenerRef) { roomListenerRef.off(); roomListenerRef = null; }
     currentRoomId = null; mySlot = null; gameType = null;
     document.getElementById('gameRoomScreen').style.display = 'none';
@@ -1671,6 +1763,12 @@ function renderRoomState(data) {
         const p2Color = gameType === 'chess' ? '⚫ 흑' : '⚪ 백';
         document.getElementById('p1Tag').textContent = `🧑 ${data.players.p1} (${p1Color})` + (mySlot === 'p1' ? ' · 나' : '');
         document.getElementById('p2Tag').textContent = `🧑 ${data.players.p2} (${p2Color})` + (mySlot === 'p2' ? ' · 나' : '');
+    }
+
+    // 결과 전적 자동 기록 (1회성)
+    if (data.status === 'finished' && data.winner && !data.recorded && mySlot === 'p1') {
+        db.ref('games/' + currentRoomId + '/recorded').set(true);
+        recordGameResult(data.winner, data.players.p1, data.players.p2);
     }
 
     if (data.reaction && data.reaction.ts > lastReactionTs) {
