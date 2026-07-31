@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>온라인 대결 - module2</title>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-database-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.12.1/chess.min.js"></script>
+<style>
+    * { box-sizing: border-box; }
+    body { font-family: 'Malgun Gothic', '맑은 고딕', sans-serif; background: #fff; margin: 0; padding: 12px; color: #222; }
+    .card { background: #fff; border-radius: 12px; padding: 16px; border: 1px solid #e0e0e0; }
+    .form-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+    .form-row label { width: 70px; font-size: 13px; font-weight: 700; color: #444; flex-shrink: 0; }
+    .form-row select, .form-row input { flex: 1; padding: 9px; border: 1px solid #ddd; border-radius: 8px; font-size: 13.5px; outline: none; }
+    .stats-card { background: #2c3e50; color: #fff; border-radius: 10px; padding: 12px 14px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; }
+    .stats-val { font-size: 15px; font-weight: 800; color: #f1c40f; }
+    .game-choice { display: flex; gap: 8px; margin-bottom: 12px; }
+    .game-choice button { flex: 1; padding: 10px; border-radius: 8px; border: 2px solid #e0e0e0; background: #fafafa; cursor: pointer; font-size: 14px; font-weight: 700; color: #555; }
+    .game-choice button.active { border-color: #4a90e2; background: #eaf2fd; color: #2c3e50; }
+    .btn { padding: 10px 14px; border: none; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 700; }
+    .btn-primary { background: #4a90e2; color: #fff; width: 100%; }
+    .btn-secondary { background: #f1f2f6; color: #333; }
+    .btn-danger { background: #e74c3c; color: #fff; }
+    .public-rooms-wrap { background: #f8f9fa; border-radius: 8px; padding: 10px; margin-bottom: 12px; max-height: 140px; overflow-y: auto; }
+    .public-room-item { display: flex; align-items: center; justify-content: space-between; background: #fff; border: 1px solid #e2e8f0; border-radius: 6px; padding: 6px 10px; margin-bottom: 6px; font-size: 12px; }
+    .divider { text-align: center; color: #bbb; font-size: 11px; margin: 12px 0; position: relative; }
+    .divider::before, .divider::after { content: ''; position: absolute; top: 50%; width: 35%; height: 1px; background: #eee; }
+    .divider::before { left: 0; } .divider::after { right: 0; }
+    .join-row { display: flex; gap: 6px; }
+    .join-row input { flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 6px; text-align: center; letter-spacing: 3px; font-weight: bold; }
+    .room-topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+    .room-code-badge { font-size: 12px; font-weight: 700; color: #2c3e50; background: #eef2f7; padding: 4px 10px; border-radius: 12px; letter-spacing: 1px; cursor: pointer; }
+    .board-wrap-outer { display: flex; justify-content: center; margin: 10px 0; }
+    .chess-board-wrap { background: #241b14; padding: 6px; border-radius: 8px; }
+    .chess-board { display: grid; grid-template-columns: repeat(8, 36px); grid-template-rows: repeat(8, 36px); }
+    .chess-sq { display: flex; align-items: center; justify-content: center; font-size: 24px; cursor: pointer; position: relative; user-select: none; }
+    .chess-sq.light { background: #f0d9b5; } .chess-sq.dark { background: #b58863; }
+    .chess-sq.selected { box-shadow: inset 0 0 0 3px #4a90e2; }
+    .chess-piece.pw { color: #fff; text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; }
+    .chess-piece.pb { color: #000; }
+    .omok-board-wrap { background: #c99b52; padding: 6px; border-radius: 8px; }
+    .omok-board { display: grid; }
+    .omok-cell { position: relative; border-right: 1px solid rgba(0,0,0,.3); border-bottom: 1px solid rgba(0,0,0,.3); cursor: pointer; }
+    .omok-stone { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); border-radius: 50%; width: 85%; height: 85%; }
+    .omok-stone.black { background: #000; } .omok-stone.white { background: #fff; border: 1px solid #ccc; }
+    .status-banner { text-align: center; font-size: 13px; font-weight: 700; padding: 8px; border-radius: 6px; background: #eef2f7; color: #2c3e50; }
+    .reaction-bar { display: flex; gap: 4px; justify-content: center; margin-top: 8px; flex-wrap: wrap; }
+    .reaction-btn { background: #f1f2f6; border: 1px solid #ddd; border-radius: 12px; padding: 3px 8px; font-size: 11px; cursor: pointer; }
+    .reaction-bubble { position: absolute; top: 50px; left: 50%; transform: translateX(-50%); background: #2c3e50; color: #fff; padding: 6px 12px; border-radius: 14px; font-size: 12px; font-weight: 700; z-index: 99; }
+</style>
+</head>
+<body>
+
+<div id="lobbyScreen" class="card">
+    <div class="form-row">
+        <label>본인 멤버</label>
+        <select id="memberSelectInLobby" onchange="updateMemberStatsDisplay()"></select>
+    </div>
+
+    <div class="stats-card">
+        <div>
+            <div style="font-size:10.5px; opacity:0.8;">나의 전체 전적</div>
+            <div class="stats-val" id="myTotalStatsDisp">0승 0패 (0%)</div>
+        </div>
+        <div style="text-align:right;">
+            <select id="opponentSelectForStats" onchange="updateVsStatsDisplay()" style="padding:2px 4px; font-size:10.5px; border-radius:4px; border:none; outline:none;"></select>
+            <div style="font-size:11.5px; font-weight:bold; color:#2ecc71; margin-top:2px;" id="vsStatsDisp">상대전적: -</div>
+        </div>
+    </div>
+
+    <div class="game-choice">
+        <button id="chooseChessBtn" onclick="selectGameType('chess')">♟ 체스</button>
+        <button id="chooseOmokBtn" onclick="selectGameType('omok')">⚫ 오목</button>
+    </div>
+
+    <div class="public-rooms-wrap">
+        <div style="font-size:11px; font-weight:700; color:#666; margin-bottom:6px;">📢 대기/진행 중인 공개 방</div>
+        <div id="publicRoomsList"><div style="text-align:center; color:#bbb; font-size:11.5px; padding:8px;">대기 중인 방이 없습니다.</div></div>
+    </div>
+
+    <div style="display:flex; gap:6px;">
+        <button class="btn btn-primary" style="flex:1;" onclick="createRoom(true)">✨ 공개 방 만들기</button>
+        <button class="btn btn-secondary" style="flex:1;" onclick="createRoom(false)">🔒 비공개 방 만들기</button>
+    </div>
+
+    <div class="divider">비공개 방 코드 입장</div>
+
+    <div class="join-row">
+        <input type="text" id="joinCodeInput" placeholder="방 코드 4자리" maxlength="4">
+        <button class="btn btn-secondary" onclick="joinRoomByCode()">입장</button>
+    </div>
+    <div id="lobbyError" style="color:#e74c3c; font-size:12px; margin-top:8px; text-align:center; display:none;"></div>
+</div>
+
+<div id="gameRoomScreen" style="display:none;" class="card">
+    <div class="room-topbar">
+        <div class="room-code-badge" id="roomCodeDisplay" onclick="copyRoomCode()">----</div>
+        <div style="display:flex; gap:4px;">
+            <button class="btn btn-danger" style="padding:4px 8px; font-size:11px;" onclick="resignGame()">🏳️ 기권 (승복)</button>
+            <button class="btn btn-secondary" style="padding:4px 8px; font-size:11px;" onclick="leaveRoom()">← 나가기</button>
+        </div>
+    </div>
+
+    <div id="reactionPopArea"></div>
+
+    <div id="waitingBox" style="text-align:center; padding:20px; color:#888; font-size:12.5px;">
+        상대방을 기다리는 중이에요...<br><span style="font-size:11px;">창을 닫아도 상대방이 들어오면 이어서 둘 수 있습니다.</span>
+    </div>
+
+    <div id="playersInfo" style="display:none; flex-direction:column; margin-bottom:8px; font-size:12px; font-weight:bold;">
+        <div id="p1Tag"></div><div id="p2Tag"></div>
+    </div>
+
+    <div class="board-wrap-outer">
+        <div id="chessGameArea" style="display:none;"><div class="chess-board-wrap"><div class="chess-board" id="mpChessBoard"></div></div></div>
+        <div id="omokGameArea" style="display:none;"><div class="omok-board-wrap"><div class="omok-board" id="mpOmokBoard"></div></div></div>
+    </div>
+
+    <div id="mpStatus" class="status-banner" style="display:none;"></div>
+
+    <div class="reaction-bar" id="reactionBar" style="display:none;">
+        <button class="reaction-btn" onclick="sendReaction('👏')">👏</button>
+        <button class="reaction-btn" onclick="sendReaction('🔥')">🔥</button>
+        <button class="reaction-btn" onclick="sendReaction('👍')">👍</button>
+        <button class="reaction-btn" onclick="sendReaction('고민 중... 🤔')">🤔 고민 중</button>
+        <button class="reaction-btn" onclick="sendReaction('잘 두시네요!')">💬 잘 두시네요!</button>
+        <button class="reaction-btn" onclick="sendReaction('아차 실수!')">😅 실수!</button>
+    </div>
+</div>
+
+<script>
+// ── Firebase 초기화 ──
+let db = null, firebaseReady = false;
+try {
+    const firebaseConfig = {
+        apiKey: "AIzaSyBttNANa5XtCGc0hITLA176bl8fZz7U3R4",
+        authDomain: "team-angkimhochi.firebaseapp.com",
+        databaseURL: "https://team-angkimhochi-default-rtdb.firebaseio.com",
+        projectId: "team-angkimhochi",
+        storageBucket: "team-angkimhochi.firebasestorage.app",
+        messagingSenderId: "885306344373",
+        appId: "1:885306344373:web:456a65c026b3ecc0590ffc"
+    };
+    firebase.initializeApp(firebaseConfig);
+    db = firebase.database();
+    firebaseReady = true;
+} catch (e) { firebaseReady = false; }
+
+let members = JSON.parse(localStorage.getItem('cal_members_c1') || '[]');
+if(members.length === 0) members = [{name:'멤버1'}, {name:'멤버2'}];
+
+let gameType = null, currentRoomId = null, mySlot = null, myNick = '', roomListenerRef = null, publicRoomsListenerRef = null, globalStats = {};
+
+document.addEventListener('DOMContentLoaded', () => {
+    renderLobbyMemberOptions();
+    listenPublicRooms();
+    listenGlobalStats();
+});
+
+function renderLobbyMemberOptions() {
+    const sel = document.getElementById('memberSelectInLobby');
+    const vsSel = document.getElementById('opponentSelectForStats');
+    sel.innerHTML = members.map(m => `<option value="${m.name}">${m.name}</option>`).join('');
+    vsSel.innerHTML = '<option value="">상대 선택</option>' + members.map(m => `<option value="${m.name}">${m.name}</option>`).join('');
+    myNick = sel.value;
+}
+
+function listenGlobalStats() {
+    if (!firebaseReady) return;
+    db.ref('stats').on('value', snap => {
+        globalStats = snap.val() || {};
+        updateMemberStatsDisplay();
+    });
+}
+
+function updateMemberStatsDisplay() {
+    myNick = document.getElementById('memberSelectInLobby').value;
+    const myStats = globalStats[myNick] || { wins: 0, losses: 0, vs: {} };
+    const total = (myStats.wins || 0) + (myStats.losses || 0);
+    const winRate = total > 0 ? Math.round((myStats.wins / total) * 100) : 0;
+    document.getElementById('myTotalStatsDisp').textContent = `${myStats.wins || 0}승 ${myStats.losses || 0}패 (${winRate}%)`;
+    updateVsStatsDisplay();
+}
+
+function updateVsStatsDisplay() {
+    const opp = document.getElementById('opponentSelectForStats').value;
+    if (!opp || opp === myNick) { document.getElementById('vsStatsDisp').textContent = '상대전적: -'; return; }
+    const myStats = globalStats[myNick] || { vs: {} };
+    const vsObj = (myStats.vs && myStats.vs[opp]) || { wins: 0, losses: 0 };
+    document.getElementById('vsStatsDisp').textContent = `vs ${opp}: ${vsObj.wins || 0}승 ${vsObj.losses || 0}패`;
+}
+
+async function recordGameResult(winnerSlot, p1Name, p2Name) {
+    if (!firebaseReady || !p1Name || !p2Name) return;
+    const winnerName = winnerSlot === 'p1' ? p1Name : p2Name;
+    const loserName = winnerSlot === 'p1' ? p2Name : p1Name;
+    await db.ref(`stats/${winnerName}/wins`).transaction(val => (val || 0) + 1);
+    await db.ref(`stats/${winnerName}/vs/${loserName}/wins`).transaction(val => (val || 0) + 1);
+    await db.ref(`stats/${loserName}/losses`).transaction(val => (val || 0) + 1);
+    await db.ref(`stats/${loserName}/vs/${winnerName}/losses`).transaction(val => (val || 0) + 1);
+}
+
+function listenPublicRooms() {
+    if (!firebaseReady) return;
+    if (publicRoomsListenerRef) publicRoomsListenerRef.off();
+    publicRoomsListenerRef = db.ref('games');
+    publicRoomsListenerRef.on('value', snap => {
+        const games = snap.val() || {};
+        const listEl = document.getElementById('publicRoomsList');
+        listEl.innerHTML = '';
+        const publicRooms = Object.entries(games).filter(([id, g]) => g.isPublic);
+        if (publicRooms.length === 0) { listEl.innerHTML = '<div style="text-align:center; color:#bbb; font-size:11.5px; padding:8px;">대기 중인 방이 없습니다.</div>'; return; }
+        publicRooms.forEach(([id, g]) => {
+            const item = document.createElement('div');
+            item.className = 'public-room-item';
+            const statusTxt = g.status === 'playing' ? ' (진행 중)' : (g.status === 'finished' ? ' (종료됨)' : ' (대기 중)');
+            item.innerHTML = `<div><b>${g.type === 'chess' ? '♟ 체스' : '⚫ 오목'}</b> | ${g.players.p1} 님의 방${statusTxt}</div><button class="btn btn-secondary" style="padding:2px 6px; font-size:10.5px;" onclick="joinPublicRoom('${id}')">입장/복구</button>`;
+            listEl.appendChild(item);
+        });
+    });
+}
+
+function selectGameType(type) {
+    gameType = type;
+    document.getElementById('chooseChessBtn').classList.toggle('active', type === 'chess');
+    document.getElementById('chooseOmokBtn').classList.toggle('active', type === 'omok');
+}
+
+function genRoomCode() {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let code = '';
+    for (let i = 0; i < 4; i++) code += chars[Math.floor(Math.random() * chars.length)];
+    return code;
+}
+
+async function createRoom(isPublic = true) {
+    if (!firebaseReady) return;
+    myNick = document.getElementById('memberSelectInLobby').value;
+    if (!gameType) { alert('체스 또는 오목을 선택해 주세요.'); return; }
+    const roomId = genRoomCode();
+    const initialState = gameType === 'chess' ? { fen: 'start' } : { boardStr: '.'.repeat(225) };
+    const roomData = { type: gameType, isPublic, createdAt: Date.now(), players: { p1: myNick, p2: null }, turn: gameType === 'chess' ? 'w' : 'b', status: 'waiting', winner: null, state: initialState, reaction: null, recorded: false };
+    await db.ref('games/' + roomId).set(roomData);
+    currentRoomId = roomId; mySlot = 'p1'; enterRoom();
+}
+
+async function joinPublicRoom(code) { myNick = document.getElementById('memberSelectInLobby').value; await processRoomJoin(code); }
+async function joinRoomByCode() { const code = document.getElementById('joinCodeInput').value.trim().toUpperCase(); if (code) await processRoomJoin(code); }
+
+async function processRoomJoin(code) {
+    if (!firebaseReady) return;
+    myNick = document.getElementById('memberSelectInLobby').value;
+    const snap = await db.ref('games/' + code).get();
+    if (!snap.exists()) { alert('존재하지 않는 방입니다.'); return; }
+    const data = snap.val();
+    if (data.players.p1 === myNick) mySlot = 'p1';
+    else if (data.players.p2 === myNick) mySlot = 'p2';
+    else if (!data.players.p2) {
+        await db.ref('games/' + code + '/players/p2').set(myNick);
+        await db.ref('games/' + code + '/status').set('playing');
+        mySlot = 'p2';
+    } else { alert('방이 가득 찼습니다.'); return; }
+    currentRoomId = code; gameType = data.type; enterRoom();
+}
+
+async function leaveRoom() {
+    if (currentRoomId && db) {
+        const snap = await db.ref('games/' + currentRoomId).get();
+        if (snap.exists() && snap.val().status === 'finished') {
+            await db.ref('games/' + currentRoomId).remove(); // 결과 나온 후 나가면 방 폭파
+        }
+    }
+    if (roomListenerRef) roomListenerRef.off();
+    currentRoomId = null; mySlot = null; gameType = null;
+    document.getElementById('gameRoomScreen').style.display = 'none';
+    document.getElementById('lobbyScreen').style.display = 'block';
+    listenPublicRooms();
+}
+
+function enterRoom() {
+    if (publicRoomsListenerRef) publicRoomsListenerRef.off();
+    document.getElementById('lobbyScreen').style.display = 'none';
+    document.getElementById('gameRoomScreen').style.display = 'block';
+    document.getElementById('roomCodeDisplay').textContent = currentRoomId;
+    document.getElementById('chessGameArea').style.display = gameType === 'chess' ? 'block' : 'none';
+    document.getElementById('omokGameArea').style.display = gameType === 'omok' ? 'block' : 'none';
+    roomListenerRef = db.ref('games/' + currentRoomId);
+    roomListenerRef.on('value', snap => { if (snap.exists()) renderRoomState(snap.val()); });
+}
+
+async function resignGame() {
+    if (!currentRoomId || !confirm('정말 기권하시겠습니까? 상대방의 승리로 처리됩니다.')) return;
+    const opponentSlot = mySlot === 'p1' ? 'p2' : 'p1';
+    await db.ref('games/' + currentRoomId).update({ status: 'finished', winner: opponentSlot });
+}
+
+let lastReactionTs = 0;
+function renderRoomState(data) {
+    const waiting = data.status === 'waiting' || !data.players.p2;
+    document.getElementById('waitingBox').style.display = waiting ? 'block' : 'none';
+    document.getElementById('playersInfo').style.display = waiting ? 'none' : 'flex';
+    document.getElementById('reactionBar').style.display = waiting ? 'none' : 'flex';
+
+    if (!waiting) {
+        document.getElementById('p1Tag').textContent = `🧑 ${data.players.p1}` + (mySlot === 'p1' ? ' (나)' : '');
+        document.getElementById('p2Tag').textContent = `🧑 ${data.players.p2}` + (mySlot === 'p2' ? ' (나)' : '');
+    }
+
+    if (data.status === 'finished' && data.winner && !data.recorded && mySlot === 'p1') {
+        db.ref('games/' + currentRoomId + '/recorded').set(true);
+        recordGameResult(data.winner, data.players.p1, data.players.p2);
+    }
+
+    if (data.reaction && data.reaction.ts > lastReactionTs) {
+        lastReactionTs = data.reaction.ts;
+        showReactionBubble(data.reaction.sender, data.reaction.text);
+    }
+
+    if (gameType === 'chess') renderMpChess(data);
+    else renderMpOmok(data);
+}
+
+async function sendReaction(text) {
+    if (currentRoomId) await db.ref('games/' + currentRoomId + '/reaction').set({ sender: myNick, text, ts: Date.now() });
+}
+
+function showReactionBubble(sender, text) {
+    const popArea = document.getElementById('reactionPopArea');
+    popArea.innerHTML = `<div class="reaction-bubble">${sender}: ${text}</div>`;
+    setTimeout(() => { popArea.innerHTML = ''; }, 2500);
+}
+
+// ── 체스/오목 멀티 실시간 렌더링 ──
+const CHESS_UNICODE = { w: { p:'♙',n:'♘',b:'♗',r:'♖',q:'♕',k:'♔' }, b: { p:'♟',n:'♞',b:'♝',r:'♜',q:'♛',k:'♚' } };
+let mpChessSelected = null;
+function myChessColor() { return mySlot === 'p1' ? 'w' : 'b'; }
+
+function renderMpChess(data) {
+    const game = (data.state && data.state.fen) ? new Chess(data.state.fen) : new Chess();
+    const boardEl = document.getElementById('mpChessBoard');
+    boardEl.innerHTML = '';
+    const board = game.board();
+    for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) {
+            const sq = String.fromCharCode(97 + c) + (8 - r);
+            const piece = board[r][c];
+            const div = document.createElement('div');
+            div.className = 'chess-sq ' + (((r + c) % 2 === 0) ? 'light' : 'dark');
+            if (sq === mpChessSelected) div.classList.add('selected');
+            if (piece) {
+                const span = document.createElement('span');
+                span.className = 'chess-piece ' + (piece.color === 'w' ? 'pw' : 'pb');
+                span.textContent = CHESS_UNICODE[piece.color][piece.type];
+                div.appendChild(span);
+            }
+            div.onclick = () => onMpChessClick(sq, data, game);
+            boardEl.appendChild(div);
+        }
+    }
+    updateStatusBanner(data, game.turn() === myChessColor());
+}
+
+async function onMpChessClick(sq, data, game) {
+    if (data.status !== 'playing' || game.turn() !== myChessColor()) return;
+    if (mpChessSelected) {
+        const moves = game.moves({ square: mpChessSelected, verbose: true }).map(m => m.to);
+        if (moves.includes(sq)) {
+            game.move({ from: mpChessSelected, to: sq, promotion: 'q' });
+            let status = 'playing', winner = null;
+            if (game.game_over()) { status = 'finished'; if (game.in_checkmate()) winner = mySlot; }
+            await db.ref('games/' + currentRoomId).update({ state: { fen: game.fen() }, turn: game.turn(), status, winner });
+            mpChessSelected = null; return;
+        }
+    }
+    const p = game.board()[8 - parseInt(sq[1])][sq.charCodeAt(0) - 97];
+    mpChessSelected = (p && p.color === myChessColor()) ? sq : null;
+    renderMpChess(data);
+}
+
+const OMOK_SIZE = 15;
+function myOmokColor() { return mySlot === 'p1' ? 'b' : 'w'; }
+
+function renderMpOmok(data) {
+    const boardStr = (data.state && data.state.boardStr) || '.'.repeat(225);
+    const boardEl = document.getElementById('mpOmokBoard');
+    boardEl.innerHTML = '';
+    boardEl.style.gridTemplateColumns = `repeat(${OMOK_SIZE}, 22px)`;
+    boardEl.style.gridTemplateRows = `repeat(${OMOK_SIZE}, 22px)`;
+    for (let r = 0; r < OMOK_SIZE; r++) {
+        for (let c = 0; c < OMOK_SIZE; c++) {
+            const idx = r * OMOK_SIZE + c;
+            const ch = boardStr[idx];
+            const cell = document.createElement('div');
+            cell.className = 'omok-cell';
+            if (ch === 'b' || ch === 'w') {
+                const stone = document.createElement('div');
+                stone.className = 'omok-stone ' + (ch === 'b' ? 'black' : 'white');
+                cell.appendChild(stone);
+            }
+            cell.onclick = () => onMpOmokClick(r, c, data, boardStr);
+            boardEl.appendChild(cell);
+        }
+    }
+    updateStatusBanner(data, data.turn === myOmokColor());
+}
+
+async function onMpOmokClick(r, c, data, boardStr) {
+    if (data.status !== 'playing' || data.turn !== myOmokColor()) return;
+    const idx = r * OMOK_SIZE + c;
+    if (boardStr[idx] !== '.') return;
+    const myColor = myOmokColor();
+    const newBoardStr = boardStr.substring(0, idx) + myColor + boardStr.substring(idx + 1);
+    let status = 'playing', winner = null, nextTurn = myColor === 'b' ? 'w' : 'b';
+    if (omokWinCheck(newBoardStr, r, c, myColor)) { status = 'finished'; winner = mySlot; }
+    await db.ref('games/' + currentRoomId).update({ state: { boardStr: newBoardStr }, turn: nextTurn, status, winner });
+}
+
+function omokWinCheck(boardStr, r, c, color) {
+    const at = (rr, cc) => (rr >= 0 && rr < OMOK_SIZE && cc >= 0 && cc < OMOK_SIZE) ? boardStr[rr * OMOK_SIZE + cc] : null;
+    const dirs = [[0,1],[1,0],[1,1],[1,-1]];
+    for (const [dr, dc] of dirs) {
+        let count = 1, rr = r + dr, cc = c + dc;
+        while (at(rr, cc) === color) { count++; rr += dr; cc += dc; }
+        rr = r - dr; cc = c - dc;
+        while (at(rr, cc) === color) { count++; rr -= dr; cc -= dc; }
+        if (count >= 5) return true;
+    }
+    return false;
+}
+
+function updateStatusBanner(data, isMyTurn) {
+    const el = document.getElementById('mpStatus');
+    if (data.status === 'waiting' || !data.players.p2) { el.style.display = 'none'; return; }
+    el.style.display = 'block';
+    if (data.status === 'finished') {
+        if (data.winner === mySlot) el.textContent = '당신 승리! 🎉';
+        else el.textContent = '상대방 승리 (기권/완승)';
+    } else {
+        el.textContent = isMyTurn ? '당신 차례입니다' : '상대방 차례입니다';
+    }
+}
+</script>
+</body>
+</html>
