@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     
     <!-- Firebase SDK (실시간 멀티플레이용) -->
+
     <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-database-compat.js"></script>
     <!-- Chess.js -->
@@ -636,13 +637,34 @@
     </div>
 </div>
 
-<script>
 let calendar;
 let currentEditingEvent = null;
 let colorPickerTargetIdx = null;
 
-let apiKey = '$2a$10$sZLGnmCRGxB9PsH1XyNSS.3Y1wwtdb5e8Um2jpIrLCECBJ1M9AdEu';
-let binId  = '6a41fd1fda38895dfe0e1904';
+// ── Firebase (Realtime Database) 초기화 ──
+let db = null;
+let firebaseReady = false;
+try {
+    const firebaseConfig = {
+        apiKey: "AIzaSyBttNANa5XtCGc0hITLA176bl8fZz7U3R4",
+        authDomain: "team-angkimhochi.firebaseapp.com",
+        databaseURL: "https://team-angkimhochi-default-rtdb.firebaseio.com",
+        projectId: "team-angkimhochi",
+        storageBucket: "team-angkimhochi.firebasestorage.app",
+        messagingSenderId: "885306344373",
+        appId: "1:885306344373:web:456a65c026b3ecc0590ffc"
+    };
+    if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+    }
+    db = firebase.database();
+    firebaseReady = true;
+} catch (e) {
+    console.error('Firebase 초기화 실패:', e);
+    firebaseReady = false;
+}
+
+function isCloudSynced() { return firebaseReady; }
 
 // ── 비밀번호 게이트 ──
 const GATE_PASSWORD = '170119';
@@ -681,7 +703,6 @@ let members = JSON.parse(localStorage.getItem('cal_members_c1') || 'null') || [
 ];
 
 const COLOR_PRESETS = ['#e74c3c','#e67e22','#f1c40f','#2ecc71','#1abc9c','#3498db','#9b59b6','#e91e63','#00bcd4','#4caf50','#ff5722','#795548','#607d8b','#2c3e50','#34495e'];
-function isCloudSynced() { return apiKey && binId; }
 
 // ── 멤버별 보기 필터 ──
 let hiddenMembers = new Set(JSON.parse(localStorage.getItem('cal_hidden_members_c1') || '[]'));
@@ -698,8 +719,6 @@ function toggleMemberVisibility(i) {
 // ── 새 일정 자동 알림 ──
 let notifEnabled = localStorage.getItem('notif_enabled_c1') === 'true';
 let knownEventIds = new Set();
-let pollTimer = null;
-const POLL_INTERVAL_MS = 15000;
 
 function playChime() {
     try {
@@ -735,38 +754,6 @@ function notifyNewEvent(ev) {
     }
 }
 
-async function pollForUpdates() {
-    if (!isCloudSynced()) return;
-    try {
-        const resp = await fetch(`https://api.jsonbin.io/v3/b/${binId}/latest`, { headers: { 'X-Master-Key': apiKey } });
-        const data = await resp.json();
-        let cloudEvents = data.record.events || [];
-        const newOnes = cloudEvents.filter(e => !knownEventIds.has(e.id));
-
-        if (data.record.members) { members = data.record.members; localStorage.setItem('cal_members_c1', JSON.stringify(members)); renderMembers(); }
-
-        // 기간이 지난 일정 실시간 자동 완료 처리
-        const autoResult = autoCompletePastEvents(cloudEvents);
-        cloudEvents = autoResult.updated;
-        if (autoResult.changed) {
-            localStorage.setItem('myAdvancedEvents_c1', JSON.stringify(cloudEvents));
-            fetch(`https://api.jsonbin.io/v3/b/${binId}`, {
-                method: 'PUT', headers: { 'Content-Type': 'application/json', 'X-Master-Key': apiKey },
-                body: JSON.stringify({ events: cloudEvents, members: data.record.members || members, messages: data.record.messages || teamMessages, banner: data.record.banner !== undefined ? data.record.banner : ddayBanner, activityLog: data.record.activityLog || activityLog })
-            }).catch(()=>{});
-        }
-
-        if (newOnes.length > 0 && notifEnabled) newOnes.forEach(notifyNewEvent);
-        refreshCalendarEvents(cloudEvents);
-
-        // 최근 활동(누가 등록/수정했는지) 실시간 갱신
-        activityLog = data.record.activityLog || activityLog;
-        renderActivityLog();
-
-        knownEventIds = new Set(cloudEvents.map(e => e.id));
-    } catch(_) {}
-}
-
 function updateNotifBtn() {
     const b = document.getElementById('notifToggleBtn');
     if (!b) return;
@@ -775,13 +762,11 @@ function updateNotifBtn() {
 }
 
 function toggleNotif() {
-    if (!notifEnabled && !isCloudSynced()) { alert('먼저 기기 연동(클라우드 동기화)을 설정해야 다른 멤버의 일정 알림을 받을 수 있어요.'); return; }
     notifEnabled = !notifEnabled;
     localStorage.setItem('notif_enabled_c1', String(notifEnabled));
     updateNotifBtn();
     if (notifEnabled) {
         if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission();
-        if (!pollTimer) pollTimer = setInterval(pollForUpdates, POLL_INTERVAL_MS);
         showNotifToast('🔔 새 일정 알림이 켜졌어요');
     } else {
         showNotifToast('🔕 알림이 꺼졌어요');
@@ -810,10 +795,370 @@ function fmtTime(d) {
 
 function makeHolidayEvent(dateStr, name) { return { id: 'hol_' + dateStr, title: name, start: dateStr, allDay: true, classNames: ['holiday-event'], editable: false, display: 'list-item' }; }
 
-// ── 기간이 지난 일정 자동 완료 처리 ──
 function isEventPastDue(e, todayDate) {
     if (!e || e.completed) return false;
     const endStr = (e.end || e.start || '').split('T')[0];
+    if (!endStr) return false;
+    let endDate = new Date(endStr + 'T00:00:00');
+    if (e.allDay) endDate.setDate(endDate.getDate() - 1);
+    return endDate < todayDate;
+}
+
+function autoCompletePastEvents(events) {
+    const todayDate = new Date(fmtDate(new Date()) + 'T00:00:00');
+    let changed = false;
+    const updated = events.map(e => {
+        if (isEventPastDue(e, todayDate)) { changed = true; return { ...e, completed: true }; }
+        return e;
+    });
+    return { updated, changed };
+}
+
+function saveMembers() { localStorage.setItem('cal_members_c1', JSON.stringify(members)); syncActionToCloud('MEMBER_UPDATE', null); }
+function renderMembers() {
+    const list = document.getElementById('member-list'); list.innerHTML = '';
+    members.forEach((m, i) => {
+        const row = document.createElement('div'); row.className = 'member-row' + (hiddenMembers.has(i) ? ' member-hidden' : '');
+        row.innerHTML = `<div class="member-dot" style="background:${m.color};" onclick="openColorPicker(${i})"></div><input class="member-name" value="${escHtml(m.name)}" onchange="members[${i}].name=this.value; saveMembers(); renderEventModal();" onclick="this.focus()"><button class="member-eye-btn" onclick="toggleMemberVisibility(${i})" title="달력에 표시/숨김">${hiddenMembers.has(i) ? '🙈' : '👁️'}</button><button class="member-color-btn" style="background:${m.color};" onclick="openColorPicker(${i})">🎨</button><button class="member-del" onclick="deleteMember(${i})">×</button>`;
+        list.appendChild(row);
+    });
+}
+
+function addMember() { members.push({ name: '새 멤버', color: COLOR_PRESETS[members.length % COLOR_PRESETS.length] }); saveMembers(); renderMembers(); }
+function deleteMember(i) {
+    if (!confirm(`"${members[i].name}" 삭제하시겠습니까?`)) return;
+    members.splice(i, 1);
+    const newHidden = new Set();
+    hiddenMembers.forEach(idx => { if (idx < i) newHidden.add(idx); else if (idx > i) newHidden.add(idx - 1); });
+    hiddenMembers = newHidden;
+    localStorage.setItem('cal_hidden_members_c1', JSON.stringify([...hiddenMembers]));
+    saveMembers(); renderMembers();
+}
+function escHtml(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function openColorPicker(memberIdx) {
+    colorPickerTargetIdx = memberIdx; document.getElementById('colorPickerTitle').textContent = `"${members[memberIdx].name}" 색상`; document.getElementById('directColorInput').value = members[memberIdx].color;
+    const wrap = document.getElementById('colorPresets'); wrap.innerHTML = '';
+    COLOR_PRESETS.forEach(c => {
+        const btn = document.createElement('button'); btn.className = 'color-preset-btn' + (c === members[memberIdx].color ? ' selected' : ''); btn.style.background = c;
+        btn.onclick = () => { document.getElementById('directColorInput').value = c; wrap.querySelectorAll('.color-preset-btn').forEach(b => b.classList.remove('selected')); btn.classList.add('selected'); };
+        wrap.appendChild(btn);
+    });
+    openModal('colorPickerModal');
+}
+function applyMemberColor() { if (colorPickerTargetIdx === null) return; members[colorPickerTargetIdx].color = document.getElementById('directColorInput').value; saveMembers(); renderMembers(); closeModal('colorPickerModal'); }
+
+let selectedMemberIdx = null;
+function renderEventModal() {
+    const wrap = document.getElementById('memberChips'); wrap.innerHTML = '';
+    const none = document.createElement('div'); none.className = 'member-chip' + (selectedMemberIdx === null ? ' active' : ''); none.style.color = '#888'; none.innerHTML = '없음';
+    none.onclick = () => { selectedMemberIdx = null; renderEventModal(); document.getElementById('eventColor').value = '#3498db'; }; wrap.appendChild(none);
+    members.forEach((m, i) => {
+        const chip = document.createElement('div'); chip.className = 'member-chip' + (selectedMemberIdx === i ? ' active' : ''); chip.style.color = m.color; chip.innerHTML = `<span class="chip-dot" style="background:${m.color};"></span>${escHtml(m.name)}`;
+        chip.onclick = () => { selectedMemberIdx = i; renderEventModal(); document.getElementById('eventColor').value = m.color; }; wrap.appendChild(chip);
+    });
+}
+
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); if (id === 'eventModal') { calendar && calendar.unselect(); } }
+function toggleTimeInputs() { const allDay = document.getElementById('eventAllDay').checked; document.getElementById('eventStartTime').disabled = allDay; document.getElementById('eventEndTime').disabled = allDay; document.getElementById('eventStartTime').style.opacity = allDay ? '0.5' : '1'; document.getElementById('eventEndTime').style.opacity = allDay ? '0.5' : '1'; }
+
+function openNewEventModal(dateStr) {
+    currentEditingEvent = null; selectedMemberIdx = null; renderEventModal();
+    document.getElementById('modal-title-txt').textContent = '일정 등록';
+    document.getElementById('eventTitle').value = '';
+    document.getElementById('eventAllDay').checked = true;
+    document.getElementById('eventColor').value = '#3498db';
+    document.getElementById('eventCompleted').checked = false;
+    document.getElementById('eventLink').value = '';
+    document.getElementById('repeatRow').style.display = 'flex';
+    document.getElementById('eventRepeat').value = 'none';
+    document.getElementById('repeatUntilRow').style.display = 'none';
+    document.getElementById('eventStartDate').value = dateStr;
+    document.getElementById('eventEndDate').value = dateStr;
+    document.getElementById('eventStartTime').value = '09:00';
+    document.getElementById('eventEndTime').value = '10:00';
+    toggleTimeInputs();
+    document.getElementById('btnDelete').style.display = 'none';
+    openModal('eventModal');
+}
+
+function openAddModalForToday() { openNewEventModal(fmtDate(new Date())); }
+
+let activeTooltipEl = null;
+function showEventTooltip(targetEl, event) {
+    hideEventTooltip();
+    const memberIdx = event.extendedProps.memberIdx;
+    const memberName = (memberIdx !== null && memberIdx !== undefined && members[memberIdx]) ? members[memberIdx].name + ' · ' : '';
+    activeTooltipEl = document.createElement('div');
+    activeTooltipEl.className = 'event-tooltip';
+    activeTooltipEl.textContent = memberName + event.title;
+    document.body.appendChild(activeTooltipEl);
+    const rect = targetEl.getBoundingClientRect();
+    activeTooltipEl.style.left = Math.max(4, rect.left) + 'px';
+    activeTooltipEl.style.top = (rect.bottom + window.scrollY + 5) + 'px';
+}
+function hideEventTooltip() { if (activeTooltipEl) { activeTooltipEl.remove(); activeTooltipEl = null; } }
+
+// ── 점심 메뉴 룰렛 ──
+const LUNCH_FOODS = {
+"한식": ["김치찌개","된장찌개","부대찌개","순두부찌개","갈비탕","삼계탕","설렁탕","곰탕","육개장","감자탕","알탕","매운탕","청국장찌개","동태찌개","어묵탕","순대국","콩나물국밥","해장국","우거지국밥","만둣국","제육볶음","불고기","갈비찜","LA갈비구이","삼겹살","목살구이","곱창구이","막창구이","닭갈비","닭발","후라이드치킨","양념치킨","간장치킨","찜닭","닭볶음탕","훈제오리","족발","보쌈","육회","낙지볶음","비빔밥","돌솥비빔밥","전주비빔밥","육회비빔밥","김치볶음밥","새우볶음밥","잡채밥","김밥","충무김밥","물냉면","비빔냉면","칼국수","잔치국수","콩국수","열무국수","쫄면","수제비","팥칼국수","고기국수","초계국수"],
+"분식": ["떡볶이","라볶이","순대","튀김","김치전","감자전","파전","어묵꼬치","떡꼬치","컵밥"],
+"중식": ["짜장면","짬뽕","탕수육","마파두부덮밥","양장피","중식볶음밥","유린기","깐풍기","고추잡채","팔보채"],
+"일식": ["초밥","사시미","라멘","돈카츠","규동","오야코동","우동","소바","텐동","나베우동"],
+"양식": ["토마토파스타","크림파스타","오일파스타","피자","스테이크","함박스테이크","리조또","오므라이스","카레라이스","햄버거"]
+};
+function renderLunchCategories() {
+    const row = document.getElementById('lunchCatRow');
+    if (row.childElementCount) return;
+    const CAT_ICONS = { '한식': '🍚', '분식': '🍢', '중식': '🥢', '일식': '🍣', '양식': '🍝' };
+    Object.keys(LUNCH_FOODS).forEach(cat => {
+        const label = document.createElement('label');
+        label.className = 'cat-pill';
+        label.innerHTML = `<input type="checkbox" class="lunch-cat-cb" value="${cat}" checked>${CAT_ICONS[cat] || ''} ${cat}`;
+        row.appendChild(label);
+    });
+}
+function spinLunchConfetti() {
+    const card = document.getElementById('lunchResultCard');
+    const emojis = ['🎉','✨','😋','🍽️'];
+    for (let i = 0; i < 5; i++) {
+        const span = document.createElement('span');
+        span.className = 'lunch-confetti';
+        span.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+        span.style.left = (30 + Math.random() * 40) + '%';
+        card.appendChild(span);
+        setTimeout(() => span.remove(), 950);
+    }
+}
+
+function spinLunchRoulette() {
+    const checked = Array.from(document.querySelectorAll('.lunch-cat-cb:checked')).map(c => c.value);
+    let pool = [];
+    checked.forEach(c => { pool = pool.concat(LUNCH_FOODS[c] || []); });
+    const resultEl = document.getElementById('lunchResult');
+    const iconEl = document.getElementById('lunchSpinIcon');
+    if (pool.length === 0) { resultEl.textContent = '카테고리를 하나 이상 선택하세요'; return; }
+    iconEl.classList.add('spinning');
+    let count = 0; const maxCount = 18;
+    const interval = setInterval(() => {
+        resultEl.textContent = pool[Math.floor(Math.random() * pool.length)];
+        count++;
+        if (count >= maxCount) {
+            clearInterval(interval);
+            resultEl.textContent = pool[Math.floor(Math.random() * pool.length)];
+            iconEl.classList.remove('spinning');
+            spinLunchConfetti();
+        }
+    }, 80);
+}
+
+// ── 상단 디데이 배너 ──
+let ddayBanner = null;
+
+// ── 최근 활동 ──
+let activityLog = [];
+const ACTIVITY_LABELS = { ADD: '등록', ADD_MULTI: '등록', UPDATE: '수정', DELETE: '삭제', DELETE_GROUP: '삭제' };
+function makeActivityEntry(action, eventData) {
+    let user = '알 수 없음';
+    let title = '(제목 없음)';
+    if (Array.isArray(eventData) && eventData.length > 0) {
+        title = eventData.length > 1 ? `${eventData[0].title} 외 ${eventData.length - 1}건` : eventData[0].title;
+        const mi = eventData[0].memberIdx;
+        if (mi !== null && mi !== undefined && members[mi]) user = members[mi].name;
+    } else if (eventData && !Array.isArray(eventData)) {
+        title = eventData.title || '(제목 없음)';
+        const mi = eventData.memberIdx;
+        if (mi !== null && mi !== undefined && members[mi]) user = members[mi].name;
+    }
+    return { user, action, label: ACTIVITY_LABELS[action] || action, title, ts: Date.now() };
+}
+function pushActivityLog(action, eventData) {
+    activityLog = [makeActivityEntry(action, eventData), ...activityLog].slice(0, 20);
+    renderActivityLog();
+    return activityLog;
+}
+function timeAgo(ts) {
+    const diff = Math.max(0, Date.now() - ts);
+    const min = Math.floor(diff / 60000);
+    if (min < 1) return '방금 전';
+    if (min < 60) return `${min}분 전`;
+    const hr = Math.floor(min / 60);
+    if (hr < 24) return `${hr}시간 전`;
+    return `${Math.floor(hr / 24)}일 전`;
+}
+function renderActivityLog() {
+    const box = document.getElementById('activity-log-list');
+    if (!box) return;
+    if (!activityLog || activityLog.length === 0) { box.innerHTML = '<div class="upcoming-empty">아직 활동이 없어요</div>'; return; }
+    box.innerHTML = activityLog.slice(0, 8).map(a => `
+        <div class="upcoming-item">
+            <span class="upcoming-dday" style="background:#7b8794;">${escHtml(a.label || a.action)}</span>
+            <div class="upcoming-info">
+                <div class="upcoming-title">${escHtml(a.title)}</div>
+                <div class="upcoming-meta">${escHtml(a.user)} · ${timeAgo(a.ts)}</div>
+            </div>
+        </div>`).join('');
+}
+
+const DDAY_THEMES = [
+    { keys: ['여행','트립','trip','바다','휴가','제주','부산'], gradient: 'linear-gradient(120deg,#36d1dc,#5b86e5)' },
+    { keys: ['생일','파티','축하'], gradient: 'linear-gradient(120deg,#ff9a9e,#fecfef)' },
+    { keys: ['회식','술','맥주','고기'], gradient: 'linear-gradient(120deg,#f7971e,#ffd200)' },
+    { keys: ['결혼','웨딩'], gradient: 'linear-gradient(120deg,#ffdde1,#ee9ca7)' },
+    { keys: ['크리스마스','연말','성탄'], gradient: 'linear-gradient(120deg,#0f2027,#2c5364)' },
+    { keys: ['시험','마감','제출','발표'], gradient: 'linear-gradient(120deg,#232526,#414345)' },
+];
+function pickDdayTheme(title) {
+    for (const theme of DDAY_THEMES) {
+        if (theme.keys.some(k => title.includes(k))) return theme.gradient;
+    }
+    return 'linear-gradient(120deg,#4a90e2,#2c3e50)';
+}
+
+function renderDdayBanner() {
+    const el = document.getElementById('ddayBanner');
+    const showEmptyBanner = () => {
+        el.className = 'dday-banner empty';
+        el.style.backgroundImage = '';
+        document.getElementById('bannerDday').textContent = '';
+        document.getElementById('bannerTitle').textContent = '📌 클릭해서 상단 배너를 설정해보세요';
+        document.getElementById('bannerDate').textContent = '';
+    };
+    if (!ddayBanner || !ddayBanner.title || !ddayBanner.date) { showEmptyBanner(); return; }
+
+    const todayDate = new Date(fmtDate(new Date()) + 'T00:00:00');
+    const target = new Date(ddayBanner.date + 'T00:00:00');
+    const diffDays = Math.round((target - todayDate) / 86400000);
+
+    if (diffDays < 0) {
+        showEmptyBanner();
+        persistDdayBanner(null);
+        return;
+    }
+    const ddayText = diffDays === 0 ? 'D-DAY' : ('D-' + diffDays);
+
+    el.className = 'dday-banner' + (ddayBanner.imageUrl ? ' has-image' : '');
+    el.style.backgroundImage = ddayBanner.imageUrl ? `url("${ddayBanner.imageUrl}")` : pickDdayTheme(ddayBanner.title);
+    document.getElementById('bannerDday').textContent = ddayText;
+    document.getElementById('bannerTitle').textContent = ddayBanner.title;
+    document.getElementById('bannerDate').textContent = ddayBanner.date;
+}
+
+function openDdayBannerConfig() {
+    const selectEl = document.getElementById('bannerEventSelect');
+    selectEl.innerHTML = '<option value="">일정을 선택하세요</option>';
+    
+    if (lastRawEvents && lastRawEvents.length > 0) {
+        const sortedEvents = [...lastRawEvents].sort((a, b) => {
+            const dateA = (a.start || '').split('T')[0];
+            const dateB = (b.start || '').split('T')[0];
+            return dateA.localeCompare(dateB);
+        });
+
+        sortedEvents.forEach(e => {
+            const startDateStr = (e.start || '').split('T')[0];
+            if (startDateStr) {
+                const opt = document.createElement('option');
+                opt.value = JSON.stringify({ title: e.title, date: startDateStr });
+                opt.textContent = `[${startDateStr}] ${e.title}`;
+                selectEl.appendChild(opt);
+            }
+        });
+    }
+
+    document.getElementById('bannerTitleInput').value = ddayBanner ? ddayBanner.title : '';
+    document.getElementById('bannerDateInput').value = ddayBanner ? ddayBanner.date : '';
+    document.getElementById('bannerImageInput').value = ddayBanner ? (ddayBanner.imageUrl || '') : '';
+    const fileInput = document.getElementById('bannerImageFile'); if (fileInput) fileInput.value = '';
+    const previewRow = document.getElementById('bannerImagePreviewRow');
+    const preview = document.getElementById('bannerImagePreview');
+    if (ddayBanner && ddayBanner.imageUrl) { preview.src = ddayBanner.imageUrl; previewRow.style.display = 'flex'; }
+    else { previewRow.style.display = 'none'; }
+    openModal('ddayBannerModal');
+}
+
+function handleBannerImageUpload(event) {
+    const file = event.target.files && event.target.files[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) { alert('이미지 파일만 업로드할 수 있어요.'); event.target.value = ''; return; }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+            try {
+                const resizedDataUrl = resizeImageForBanner(img);
+                document.getElementById('bannerImageInput').value = resizedDataUrl;
+                document.getElementById('bannerImagePreview').src = resizedDataUrl;
+                document.getElementById('bannerImagePreviewRow').style.display = 'flex';
+            } catch(_) { alert('이미지 처리 중 오류가 발생했어요.'); }
+        };
+        img.onerror = () => alert('이미지를 불러오지 못했어요.');
+        img.src = e.target.result;
+    };
+    reader.onerror = () => alert('파일을 읽지 못했어요.');
+    reader.readAsDataURL(file);
+}
+
+function resizeImageForBanner(img) {
+    const bannerEl = document.getElementById('ddayBanner');
+    const targetRatio = (bannerEl && bannerEl.clientWidth > 0 && bannerEl.clientHeight > 0)
+        ? bannerEl.clientWidth / bannerEl.clientHeight
+        : (1000 / 220);
+
+    const srcRatio = img.width / img.height;
+    let sx = 0, sy = 0, sw = img.width, sh = img.height;
+    if (srcRatio > targetRatio) {
+        sw = img.height * targetRatio;
+        sx = (img.width - sw) / 2;
+    } else {
+        sh = img.width / targetRatio;
+        sy = (img.height - sh) / 2;
+    }
+
+    const MAX_W = 1200;
+    const outW = Math.min(MAX_W, Math.round(sw));
+    const outH = Math.round(outW / targetRatio);
+
+    const canvas = document.createElement('canvas');
+    canvas.width = outW; canvas.height = outH;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, sx, sy, sw, sh, 0, 0, outW, outH);
+    return canvas.toDataURL('image/jpeg', 0.85);
+}
+
+function onBannerEventSelectChange() {
+    const selectEl = document.getElementById('bannerEventSelect');
+    if (!selectEl.value) return;
+    try {
+        const item = JSON.parse(selectEl.value);
+        document.getElementById('bannerTitleInput').value = item.title;
+        document.getElementById('bannerDateInput').value = item.date;
+    } catch(_) {}
+}
+
+async function persistDdayBanner(bannerObj) {
+    ddayBanner = bannerObj;
+    if (firebaseReady) {
+        await db.ref('calendarShared/banner').set(bannerObj);
+    }
+    localStorage.setItem('dday_banner_c1', JSON.stringify(bannerObj));
+    renderDdayBanner();
+}
+
+function saveDdayBanner() {
+    const title = document.getElementById('bannerTitleInput').value.trim();
+    const date = document.getElementById('bannerDateInput').value;
+    const imageUrl = document.getElementById('bannerImageInput').value.trim();
+    if (!title || !date) { alert('제목과 날짜를 입력해주세요.'); return; }
+    closeModal('ddayBannerModal');
+    persistDdayBanner({ title, date, imageUrl: imageUrl || null });
+}
+
+function clearDdayBanner() {
+    closeModal('ddayBannerModal');
+    persistDdayBanner(null);
+}    const endStr = (e.end || e.start || '').split('T')[0];
     if (!endStr) return false;
     let endDate = new Date(endStr + 'T00:00:00');
     if (e.allDay) endDate.setDate(endDate.getDate() - 1); // 종일 일정의 end는 다음날 00:00 기준이라 하루 보정
@@ -2318,137 +2663,48 @@ function deleteEvent() {
 }
 
 async function syncActionToCloud(actionType, eventData) {
-    if (!isCloudSynced()) {
-        let events = JSON.parse(localStorage.getItem('myAdvancedEvents_c1') || '[]');
-        let logData = eventData;
-        if(actionType === 'ADD') events.push(eventData);
-        else if(actionType === 'ADD_MULTI') events.push(...eventData);
-        else if(actionType === 'UPDATE') { let idx = events.findIndex(e=>e.id===eventData.id); if(idx>-1) events[idx] = eventData; }
-        else if(actionType === 'DELETE') { logData = events.find(e=>e.id===eventData.id) || eventData; events = events.filter(e=>e.id!==eventData.id); }
-        else if(actionType === 'DELETE_GROUP') { logData = events.find(e=>e.groupId===eventData.groupId) || eventData; events = events.filter(e=>e.groupId!==eventData.groupId); }
-        
-        localStorage.setItem('myAdvancedEvents_c1', JSON.stringify(events));
-        if (actionType !== 'MEMBER_UPDATE') { pushActivityLog(actionType, logData); localStorage.setItem('activity_log_c1', JSON.stringify(activityLog)); }
-        refreshCalendarEvents(events);
-        return;
+    let events = JSON.parse(localStorage.getItem('myAdvancedEvents_c1') || '[]');
+    let logData = eventData;
+
+    if (actionType === 'ADD') events.push(eventData);
+    else if (actionType === 'ADD_MULTI') events.push(...eventData);
+    else if (actionType === 'UPDATE') {
+        let idx = events.findIndex(e => e.id === eventData.id);
+        if (idx > -1) events[idx] = eventData;
+    }
+    else if (actionType === 'DELETE') {
+        logData = events.find(e => e.id === eventData.id) || eventData;
+        events = events.filter(e => e.id !== eventData.id);
+    }
+    else if (actionType === 'DELETE_GROUP') {
+        logData = events.find(e => e.groupId === eventData.groupId) || eventData;
+        events = events.filter(e => e.groupId !== eventData.groupId);
     }
 
-    document.getElementById('loading-overlay').style.display = 'flex';
-    document.getElementById('sync-status-txt').textContent = '⏳ 데이터 병합 중...';
+    if (actionType !== 'MEMBER_UPDATE') {
+        pushActivityLog(actionType, logData);
+        localStorage.setItem('activity_log_c1', JSON.stringify(activityLog));
+    }
+    localStorage.setItem('myAdvancedEvents_c1', JSON.stringify(events));
+    refreshCalendarEvents(events);
 
-    try {
-        const res = await fetch(`https://api.jsonbin.io/v3/b/${binId}/latest`, { headers: { 'X-Master-Key': apiKey } });
-        const data = await res.json();
-        let cloudEvents = data.record.events || [];
-        let cloudMembers = data.record.members || members;
-        let cloudMessages = data.record.messages || teamMessages || [];
-        let cloudBanner = data.record.banner !== undefined ? data.record.banner : ddayBanner;
-        let cloudActivityLog = data.record.activityLog || activityLog || [];
-        let logData = eventData;
-
-        if (actionType === 'ADD' || actionType === 'UPDATE') {
-            let idx = cloudEvents.findIndex(e => e.id === eventData.id);
-            if (idx > -1) cloudEvents[idx] = eventData;
-            else cloudEvents.push(eventData);
-        } else if (actionType === 'ADD_MULTI') {
-            cloudEvents.push(...eventData);
-        } else if (actionType === 'DELETE') {
-            logData = cloudEvents.find(e => e.id === eventData.id) || eventData;
-            cloudEvents = cloudEvents.filter(e => e.id !== eventData.id);
-        } else if (actionType === 'DELETE_GROUP') {
-            logData = cloudEvents.find(e => e.groupId === eventData.groupId) || eventData;
-            cloudEvents = cloudEvents.filter(e => e.groupId !== eventData.groupId);
-        } else if (actionType === 'MEMBER_UPDATE') {
-            cloudMembers = members;
+    if (firebaseReady) {
+        document.getElementById('loading-overlay').style.display = 'flex';
+        try {
+            await db.ref('calendarShared').update({
+                events: events,
+                members: members,
+                activityLog: activityLog
+            });
+            document.getElementById('sync-status-txt').textContent = '☁️ 실시간 동기화 완료';
+        } catch (error) {
+            console.error('Firebase 저장 에러:', error);
+            alert('저장에 실패했습니다.');
+        } finally {
+            document.getElementById('loading-overlay').style.display = 'none';
         }
-
-        if (actionType !== 'MEMBER_UPDATE') {
-            cloudActivityLog = [makeActivityEntry(actionType, logData), ...cloudActivityLog].slice(0, 20);
-        }
-
-        await fetch(`https://api.jsonbin.io/v3/b/${binId}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json', 'X-Master-Key': apiKey },
-            body: JSON.stringify({ events: cloudEvents, members: cloudMembers, messages: cloudMessages, banner: cloudBanner, activityLog: cloudActivityLog })
-        });
-
-        localStorage.setItem('myAdvancedEvents_c1', JSON.stringify(cloudEvents));
-        if (actionType !== 'MEMBER_UPDATE') { refreshCalendarEvents(cloudEvents); activityLog = cloudActivityLog; renderActivityLog(); }
-        knownEventIds = new Set(cloudEvents.map(e => e.id));
-
-        document.getElementById('sync-status-txt').textContent = '☁️ 충돌 방지 병합 완료';
-    } catch (error) {
-        alert('서버 연결 불안정으로 저장이 실패했습니다. 다시 시도해주세요.');
-        document.getElementById('sync-status-txt').textContent = '⚠️ 저장 실패';
-    } finally {
-        document.getElementById('loading-overlay').style.display = 'none';
     }
 }
-
-function refreshCalendarEvents(events) {
-    if(!calendar) return;
-    lastRawEvents = events;
-    calendar.removeAllEvents();
-    const holidayEvents = Object.entries(HOLIDAY_MAP).map(([date, name]) => makeHolidayEvent(date, name));
-    const visibleEvents = events.filter(e => !(e.memberIdx !== null && e.memberIdx !== undefined && hiddenMembers.has(e.memberIdx)));
-
-    let formattedEvents = visibleEvents.map(e => {
-        let eColor = e.backgroundColor || '#3498db';
-        if (e.memberIdx !== null && e.memberIdx !== undefined && members[e.memberIdx]) {
-            eColor = members[e.memberIdx].color;
-        }
-        return {
-            id: e.id, title: e.title, start: e.start, end: e.end, allDay: e.allDay,
-            backgroundColor: eColor, borderColor: eColor,
-            classNames: e.completed ? ['event-completed'] : [],
-            extendedProps: { memberIdx: e.memberIdx, completed: !!e.completed, groupId: e.groupId || null, link: e.link || null }
-        };
-    });
-    
-    calendar.addEventSource([...formattedEvents, ...holidayEvents]);
-    renderUpcomingSummary(visibleEvents);
-}
-
-function renderUpcomingSummary(events) {
-    const box = document.getElementById('upcoming-list');
-    if (!box) return;
-    const todayDate = new Date(fmtDate(new Date()) + 'T00:00:00');
-
-    let items = events.map(e => {
-        const startDateStr = (e.start || '').split('T')[0];
-        const d = new Date(startDateStr + 'T00:00:00');
-        const diffDays = Math.round((d - todayDate) / 86400000);
-        return { title: e.title, dateStr: startDateStr, memberIdx: e.memberIdx, completed: !!e.completed, diffDays };
-    }).filter(it => it.dateStr && it.diffDays >= 0 && !it.completed)
-      .sort((a,b) => a.diffDays - b.diffDays)
-      .slice(0, 6);
-
-    if (items.length === 0) { box.innerHTML = '<div class="upcoming-empty">다가오는 일정이 없어요 🎉</div>'; return; }
-
-    box.innerHTML = items.map(it => {
-        const dday = it.diffDays === 0 ? 'D-DAY' : `D-${it.diffDays}`;
-        const hasMember = it.memberIdx !== null && it.memberIdx !== undefined && members[it.memberIdx];
-        const color = hasMember ? members[it.memberIdx].color : '#999';
-        const memberName = hasMember ? members[it.memberIdx].name : '';
-        return `<div class="upcoming-item">
-            <span class="upcoming-dday" style="background:${color};">${dday}</span>
-            <div class="upcoming-info">
-                <div class="upcoming-title">${escHtml(it.title)}</div>
-                <div class="upcoming-meta">${it.dateStr.slice(5)}${memberName ? ' · ' + escHtml(memberName) : ''}</div>
-            </div>
-        </div>`;
-    }).join('');
-}
-
-async function createNewBin() {
-    const key = document.getElementById('apiKeyInput').value.trim(); if (!key) { alert('API Key를 먼저 입력해주세요.'); return; }
-    try {
-        const res = await fetch('https://api.jsonbin.io/v3/b', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Master-Key': key, 'X-Bin-Name': 'TeamCalendar' }, body: JSON.stringify({ events: [], members, messages: [], banner: null, activityLog: [] }) });
-        const data = await res.json(); document.getElementById('binIdInput').value = data.metadata.id; alert('DB 생성 완료!\n[저장 및 연동 시작]을 눌러주세요.');
-    } catch(_) { alert('생성 실패. API Key 확인 요망.'); }
-}
-
-function saveSyncSettings() { localStorage.setItem('jsonbin_api_key_c1', document.getElementById('apiKeyInput').value.trim()); localStorage.setItem('jsonbin_bin_id_c1', document.getElementById('binIdInput').value.trim()); alert('설정 완료!'); location.reload(); }
 
 let appInitialized = false;
 
@@ -2456,39 +2712,50 @@ async function initCalendarApp() {
     if (appInitialized) return;
     appInitialized = true;
 
-    document.getElementById('apiKeyInput').value = apiKey; document.getElementById('binIdInput').value = binId;
-    document.getElementById('dispApiKey').textContent = apiKey || '-'; document.getElementById('dispBinId').textContent = binId || '-';
-
     renderMembers();
 
-    let savedEvents = [];
-    if (isCloudSynced()) {
-        document.getElementById('sync-status-txt').textContent = '⏳ 불러오는 중...';
-        try {
-            const resp = await fetch(`https://api.jsonbin.io/v3/b/${binId}/latest`, { headers: { 'X-Master-Key': apiKey } });
-            const data = await resp.json();
-            savedEvents = data.record.events || [];
-            teamMessages = data.record.messages || [];
-            ddayBanner = data.record.banner || null;
-            activityLog = data.record.activityLog || [];
-            if (data.record.members) { members = data.record.members; saveMembers(); renderMembers(); }
-            document.getElementById('sync-status-txt').textContent = '☁️ 동기화 켜짐';
-        } catch(_) { document.getElementById('sync-status-txt').textContent = '⚠️ 연결 실패 (로컬)'; savedEvents = JSON.parse(localStorage.getItem('myAdvancedEvents_c1') || '[]'); teamMessages = JSON.parse(localStorage.getItem('teamMessages_c1') || '[]'); ddayBanner = JSON.parse(localStorage.getItem('dday_banner_c1') || 'null'); activityLog = JSON.parse(localStorage.getItem('activity_log_c1') || '[]'); }
-    } else { savedEvents = JSON.parse(localStorage.getItem('myAdvancedEvents_c1') || '[]'); teamMessages = JSON.parse(localStorage.getItem('teamMessages_c1') || '[]'); ddayBanner = JSON.parse(localStorage.getItem('dday_banner_c1') || 'null'); activityLog = JSON.parse(localStorage.getItem('activity_log_c1') || '[]'); }
+    let savedEvents = JSON.parse(localStorage.getItem('myAdvancedEvents_c1') || '[]');
+    teamMessages = JSON.parse(localStorage.getItem('teamMessages_c1') || '[]');
+    ddayBanner = JSON.parse(localStorage.getItem('dday_banner_c1') || 'null');
+    activityLog = JSON.parse(localStorage.getItem('activity_log_c1') || '[]');
+
     renderDdayBanner();
     renderActivityLog();
 
-    // 기간이 지난 일정 자동 완료 처리 (조용히 반영)
-    const autoCompleteResult = autoCompletePastEvents(savedEvents);
-    savedEvents = autoCompleteResult.updated;
-    if (autoCompleteResult.changed) {
-        localStorage.setItem('myAdvancedEvents_c1', JSON.stringify(savedEvents));
-        if (isCloudSynced()) {
-            fetch(`https://api.jsonbin.io/v3/b/${binId}`, {
-                method: 'PUT', headers: { 'Content-Type': 'application/json', 'X-Master-Key': apiKey },
-                body: JSON.stringify({ events: savedEvents, members, messages: teamMessages, banner: ddayBanner, activityLog })
-            }).catch(()=>{});
-        }
+    if (firebaseReady) {
+        document.getElementById('sync-status-txt').textContent = '☁️ Firebase 실시간 연결됨';
+        
+        // Firebase 실시간 리스너 연결 (새로고침 없이 다른 사람 화면에도 즉시 반영!)
+        db.ref('calendarShared').on('value', snap => {
+            const data = snap.val();
+            if (!data) return;
+
+            let cloudEvents = data.events || [];
+            if (data.members) {
+                members = data.members;
+                localStorage.setItem('cal_members_c1', JSON.stringify(members));
+                renderMembers();
+            }
+            if (data.messages) teamMessages = data.messages;
+            if (data.banner !== undefined) {
+                ddayBanner = data.banner;
+                renderDdayBanner();
+            }
+            if (data.activityLog) {
+                activityLog = data.activityLog;
+                renderActivityLog();
+            }
+
+            const newOnes = cloudEvents.filter(e => !knownEventIds.has(e.id));
+            if (newOnes.length > 0 && notifEnabled && knownEventIds.size > 0) {
+                newOnes.forEach(notifyNewEvent);
+            }
+
+            savedEvents = cloudEvents;
+            localStorage.setItem('myAdvancedEvents_c1', JSON.stringify(savedEvents));
+            refreshCalendarEvents(savedEvents);
+            knownEventIds = new Set(savedEvents.map(e => e.id));
+        });
     }
 
     const calEl = document.getElementById('calendar');
@@ -2567,9 +2834,6 @@ async function initCalendarApp() {
 
     knownEventIds = new Set(savedEvents.map(e => e.id));
     updateNotifBtn();
-    if (isCloudSynced()) {
-        pollTimer = setInterval(pollForUpdates, POLL_INTERVAL_MS);
-    }
 }
 
 function toggleKeyInfo(btn) { const box = document.getElementById('keyInfoBox'); const isOpen = box.style.display === 'block'; box.style.display = isOpen ? 'none' : 'block'; btn.textContent = isOpen ? '🔑 Key & ID 보기 ▾' : '🔑 Key & ID 숨기기 ▴'; }
