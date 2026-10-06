@@ -492,31 +492,44 @@ const GATE_PASSWORD = '170119';
 const GATE_SESSION_KEY = 'gate_unlocked_c1';
 
 function checkGatePassword() {
-    const val = document.getElementById('gatePwInput').value.trim();
+    const inputEl = document.getElementById('gatePwInput');
+    const val = inputEl ? inputEl.value.trim() : '';
     if (val === GATE_PASSWORD) {
         sessionStorage.setItem(GATE_SESSION_KEY, 'true');
         unlockApp();
     } else {
-        document.getElementById('gateError').style.display = 'block';
-        document.getElementById('gatePwInput').value = '';
-        document.getElementById('gatePwInput').focus();
+        const errorEl = document.getElementById('gateError');
+        if (errorEl) errorEl.style.display = 'block';
+        if (inputEl) {
+            inputEl.value = '';
+            inputEl.focus();
+        }
     }
 }
 
 function unlockApp() {
-    document.getElementById('password-gate').style.display = 'none';
-    document.getElementById('app-wrapper').style.display = 'flex';
-    document.getElementById('fab-add-event').style.display = 'flex';
-    initCalendarApp();
+    const gate = document.getElementById('password-gate');
+    const app = document.getElementById('app-wrapper');
+    const fab = document.getElementById('fab-add-event');
+
+    if (gate) gate.style.display = 'none';
+    if (app) app.style.display = 'flex';
+    if (fab) fab.style.display = 'flex';
+
+    if (typeof initCalendarApp === 'function') {
+        initCalendarApp();
+    }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
     if (sessionStorage.getItem(GATE_SESSION_KEY) === 'true') {
         unlockApp();
     } else {
-        document.getElementById('gatePwInput').focus();
+        const inputEl = document.getElementById('gatePwInput');
+        if (inputEl) inputEl.focus();
     }
 });
+
 
 let members = JSON.parse(localStorage.getItem('cal_members_c1') || 'null') || [
     { name: '멤버1', color: '#3498db' },
