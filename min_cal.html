@@ -17,10 +17,18 @@
     
     <style>
         *, *::before, *::after { box-sizing: border-box; }
-        body { font-family: 'Malgun Gothic', '맑은 고딕', Apple SD Gothic Neo, sans-serif; background: #eef1f5; margin: 0; padding: 16px; color: #222; }
-        #app-wrapper { max-width: 1280px; margin: 0 auto; display: flex; gap: 14px; align-items: flex-start; }
+        body { font-family: 'Malgun Gothic', '맑은 고딕', Apple SD Gothic Neo, sans-serif; background: #eef1f5; margin: 0; padding: 16px; color: #222; -webkit-tap-highlight-color: transparent; }
+        
+        /* 모바일 상단 네비게이션 바 (모바일 전용) */
+        #mobile-nav-bar { display: none; background: #2c3e50; color: #fff; padding: 12px 16px; border-radius: 12px; margin-bottom: 12px; align-items: center; justify-content: space-between; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .mobile-nav-title { font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+        .mobile-nav-btn { background: rgba(255,255,255,0.15); border: none; color: #fff; padding: 8px 12px; border-radius: 6px; font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 6px; }
 
+        #app-wrapper { max-width: 1280px; margin: 0 auto; display: flex; gap: 14px; align-items: flex-start; position: relative; }
+
+        /* 사이드바 스타일 (PC 기본) */
         #sidebar { width: 220px; flex-shrink: 0; display: flex; flex-direction: column; gap: 12px; }
+        .sidebar-close-btn { display: none; background: none; border: none; font-size: 20px; color: #888; align-self: flex-end; cursor: pointer; padding: 4px; }
         .sidebar-card { background: #fff; border-radius: 12px; padding: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
         .sidebar-card h3 { margin: 0 0 12px; font-size: 13px; font-weight: 700; color: #555; text-transform: uppercase; }
 
@@ -88,14 +96,14 @@
         .lunch-confetti { position: absolute; font-size: 18px; pointer-events: none; animation: lunchConfettiUp .9s ease-out forwards; left: 50%; top: 60%; }
         @keyframes lunchConfettiUp { from { transform: translate(-50%,0) scale(1); opacity: 1; } to { transform: translate(-50%,-70px) scale(1.4); opacity: 0; } }
 
-        .dday-banner { position: relative; border-radius: 14px; overflow: hidden; margin-bottom: 16px; min-height: 118px; background-size: cover; background-position: center; box-shadow: 0 6px 18px rgba(0,0,0,.15); }
-        .dday-banner-overlay { position: relative; z-index: 1; height: 100%; min-height: 118px; display: flex; align-items: center; justify-content: space-between; padding: 20px 24px; }
+        .dday-banner { position: relative; border-radius: 14px; overflow: hidden; margin-bottom: 16px; min-height: 110px; background-size: cover; background-position: center; box-shadow: 0 6px 18px rgba(0,0,0,.15); }
+        .dday-banner-overlay { position: relative; z-index: 1; height: 100%; min-height: 110px; display: flex; align-items: center; justify-content: space-between; padding: 18px 20px; }
         .dday-banner.has-image .dday-banner-overlay { background: linear-gradient(90deg, rgba(0,0,0,.6), rgba(0,0,0,.15)); }
-        .dday-banner-content { color: #fff; }
-        .dday-banner-num { font-size: 40px; font-weight: 800; line-height: 1; text-shadow: 0 2px 8px rgba(0,0,0,.35); }
-        .dday-banner-title { font-size: 17px; font-weight: 700; margin-top: 6px; text-shadow: 0 1px 4px rgba(0,0,0,.35); }
+        .dday-banner-content { color: #fff; min-width: 0; flex: 1; }
+        .dday-banner-num { font-size: clamp(28px, 6vw, 40px); font-weight: 800; line-height: 1; text-shadow: 0 2px 8px rgba(0,0,0,.35); }
+        .dday-banner-title { font-size: clamp(14px, 4vw, 17px); font-weight: 700; margin-top: 6px; text-shadow: 0 1px 4px rgba(0,0,0,.35); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .dday-banner-date { font-size: 12px; opacity: .85; margin-top: 2px; }
-        .dday-banner-edit { background: rgba(255,255,255,.2); border: 1px solid rgba(255,255,255,.4); color: #fff; padding: 8px 14px; border-radius: 8px; font-size: 12px; cursor: pointer; flex-shrink: 0; }
+        .dday-banner-edit { background: rgba(255,255,255,.2); border: 1px solid rgba(255,255,255,.4); color: #fff; padding: 8px 12px; border-radius: 8px; font-size: 12px; cursor: pointer; flex-shrink: 0; margin-left: 10px; }
         .dday-banner-edit:hover { background: rgba(255,255,255,.32); }
         .dday-banner.empty { cursor: pointer; }
         .dday-banner.empty .dday-banner-content { color: #eee; font-size: 13.5px; font-weight: 600; }
@@ -113,7 +121,7 @@
 
         .chess-board-wrap { background: linear-gradient(135deg, #4a3a2c, #241b14); padding: 8px; border-radius: 10px; box-shadow: 0 10px 28px rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,255,255,.06); margin: 6px 0; }
         .chess-board { display: grid; grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(8, 1fr); width: 100%; aspect-ratio: 1 / 1; border-radius: 4px; overflow: hidden; box-shadow: 0 4px 16px rgba(0,0,0,.45); }
-        .chess-sq { display: flex; align-items: center; justify-content: center; font-size: clamp(18px, 4.5vw, 30px); cursor: pointer; position: relative; user-select: none; transition: background-color .12s; }
+        .chess-sq { display: flex; align-items: center; justify-content: center; font-size: clamp(16px, 4.5vw, 30px); cursor: pointer; position: relative; user-select: none; transition: background-color .12s; }
         .chess-sq.light { background: #f0d9b5; }
         .chess-sq.dark { background: #b58863; }
         .chess-sq .coord-file, .chess-sq .coord-rank { position: absolute; font-size: 8px; font-weight: 800; opacity: 0.55; pointer-events: none; }
@@ -163,17 +171,17 @@
         .omok-status-banner.status-lose { background: #f8d7da; color: #a71d2a; }
         .omok-status-banner.status-draw { background: #e2e3e5; color: #41464b; }
 
-        #password-gate { position: fixed; inset: 0; background: #1c2530; display: flex; align-items: center; justify-content: center; z-index: 99999; }
-        .pw-box { background: #fff; border-radius: 14px; padding: 32px 28px; width: 300px; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,.3); }
+        #password-gate { position: fixed; inset: 0; background: #1c2530; display: flex; align-items: center; justify-content: center; z-index: 99999; padding: 16px; }
+        .pw-box { background: #fff; border-radius: 14px; padding: 32px 28px; width: 300px; max-width: 100%; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,.3); }
         .pw-box h2 { margin: 0 0 6px; font-size: 18px; color: #2c3e50; }
         .pw-box p { font-size: 12px; color: #888; margin: 0 0 18px; }
-        .pw-box input { width: 100%; padding: 12px; border: 1.5px solid #ddd; border-radius: 8px; font-size: 16px; text-align: center; letter-spacing: 3px; margin-bottom: 12px; outline: none; box-sizing: border-box; }
+        .pw-box input { width: 100%; padding: 12px; border: 1.5px solid #ddd; border-radius: 8px; font-size: 16px; text-align: center; letter-spacing: 3px; margin-bottom: 12px; outline: none; }
         .pw-box input:focus { border-color: #4a90e2; }
         .pw-box button { width: 100%; padding: 12px; border: none; border-radius: 8px; background: #4a90e2; color: #fff; font-weight: 700; font-size: 14px; cursor: pointer; }
         .pw-box button:hover { background: #3a7bd5; }
         .pw-error { color: #e74c3c; font-size: 12px; margin-top: 8px; display: none; }
 
-        #calendar-wrap { flex: 1; background: #fff; border-radius: 12px; padding: 18px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); min-width: 0; }
+        #calendar-wrap { flex: 1; background: #fff; border-radius: 12px; padding: 18px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); min-width: 0; width: 100%; }
         .fc .fc-toolbar-title { font-size: 1.3em; font-weight: 700; }
         .fc .fc-button-primary { background-color: #4a90e2 !important; border-color: #4a90e2 !important; font-size: 13px !important; text-transform: capitalize; }
         .fc .fc-button-active { background-color: #2c3e50 !important; border-color: #2c3e50 !important; }
@@ -184,17 +192,17 @@
 
         .modal-overlay { display: none; position: fixed; z-index: 2000; inset: 0; background: rgba(0,0,0,.45); align-items: center; justify-content: center; padding: 12px; }
         .modal-overlay.open { display: flex; }
-        .modal-box { background: #fff; border-radius: 14px; padding: 28px; width: 500px; max-width: 100%; max-height: 90vh; overflow-y: auto; box-shadow: 0 8px 32px rgba(0,0,0,.18); }
-        .modal-hd { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding-bottom: 14px; margin-bottom: 18px; }
+        .modal-box { background: #fff; border-radius: 14px; padding: 24px; width: 500px; max-width: 100%; max-height: 90vh; overflow-y: auto; box-shadow: 0 8px 32px rgba(0,0,0,.18); }
+        .modal-hd { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding-bottom: 12px; margin-bottom: 16px; }
         .modal-hd h2 { margin: 0; font-size: 17px; color: #1a1a2e; }
-        .close-x { font-size: 26px; cursor: pointer; color: #999; background: none; border: none; padding: 0 10px; }
+        .close-x { font-size: 26px; cursor: pointer; color: #999; background: none; border: none; padding: 0 8px; line-height: 1; }
         .form-row { display: flex; align-items: center; gap: 10px; margin-bottom: 13px; }
         .form-row label { width: 100px; font-size: 13px; font-weight: 600; flex-shrink: 0; color: #444; }
-        .date-time-group { display: flex; gap: 8px; flex: 1; }
-        .form-row input[type="text"], .form-row input[type="date"], .form-row input[type="time"], .form-row select { flex: 1; padding: 10px 11px; border: 1px solid #ddd; border-radius: 7px; font-size: 14px; background: #fafafa; outline: none; width: 100%; }
+        .date-time-group { display: flex; gap: 8px; flex: 1; min-width: 0; }
+        .form-row input[type="text"], .form-row input[type="date"], .form-row input[type="time"], .form-row input[type="url"], .form-row select { flex: 1; padding: 10px 11px; border: 1px solid #ddd; border-radius: 7px; font-size: 14px; background: #fafafa; outline: none; width: 100%; min-width: 0; }
         .form-row input[type="color"] { width: 44px; height: 40px; border: 1px solid #ddd; border-radius: 7px; cursor: pointer; padding: 2px; }
-        .modal-ft { display: flex; justify-content: flex-end; gap: 8px; margin-top: 22px; padding-top: 14px; border-top: 1px solid #eee; }
-        .btn { padding: 12px 18px; border: none; border-radius: 7px; cursor: pointer; font-size: 14px; font-weight: 600; }
+        .modal-ft { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; padding-top: 14px; border-top: 1px solid #eee; }
+        .btn { padding: 11px 18px; border: none; border-radius: 7px; cursor: pointer; font-size: 14px; font-weight: 600; }
         .btn-primary { background: #4a90e2; color: #fff; }
         .btn-secondary { background: #f1f2f6; color: #333; }
         .btn-danger { background: #e74c3c; color: #fff; }
@@ -207,8 +215,8 @@
         .color-preset-btn { width: 36px; height: 36px; border-radius: 50%; border: 3px solid transparent; cursor: pointer; }
         .color-preset-btn.selected { border-color: #333; transform: scale(1.15); }
         #holiday-toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #2c3e50; color: #fff; padding: 12px 24px; border-radius: 8px; font-size: 14px; display: none; z-index: 9999; }
-        #loading-overlay { display: none; position: fixed; z-index: 9999; inset: 0; background: rgba(0,0,0,0.6); align-items: center; justify-content: center; color: white; font-size: 20px; font-weight: bold; flex-direction: column; gap: 15px; }
-        .spinner { border: 5px solid #f3f3f3; border-top: 5px solid #3498db; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; }
+        #loading-overlay { display: none; position: fixed; z-index: 9999; inset: 0; background: rgba(0,0,0,0.6); align-items: center; justify-content: center; color: white; font-size: 18px; font-weight: bold; flex-direction: column; gap: 15px; }
+        .spinner { border: 5px solid #f3f3f3; border-top: 5px solid #3498db; border-radius: 50%; width: 46px; height: 46px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
         .chat-msg { background: #f1f3f5; border-radius: 10px; padding: 8px 12px; font-size: 13px; position: relative; }
@@ -218,6 +226,74 @@
         .chat-msg .chat-del-btn { position: absolute; top: 6px; right: 8px; background: none; border: none; color: #bbb; cursor: pointer; font-size: 14px; padding: 0; line-height: 1; }
         .chat-msg .chat-del-btn:hover { color: #e74c3c; }
         .chat-empty { text-align: center; color: #999; font-size: 12px; padding: 20px 0; }
+
+        /* 모바일 드로어 백드롭 (어두운 배경) */
+        #sidebar-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 1050; }
+
+        /* ── 모바일 전용 반응형 미디어 쿼리 (768px 이하) ── */
+        @media (max-width: 768px) {
+            body { padding: 10px 8px; }
+            #mobile-nav-bar { display: flex; }
+            #app-wrapper { display: block; }
+            
+            /* 사이드바를 슬라이드 드로어로 변환 */
+            #sidebar {
+                position: fixed;
+                top: 0;
+                left: -280px;
+                width: 270px;
+                height: 100vh;
+                background: #eef1f5;
+                z-index: 1100;
+                overflow-y: auto;
+                padding: 16px 12px 60px;
+                box-shadow: 4px 0 20px rgba(0,0,0,0.25);
+                transition: left 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+            }
+            #sidebar.drawer-open { left: 0; }
+            #sidebar-backdrop.active { display: block; }
+            .sidebar-close-btn { display: block; }
+
+            #calendar-wrap { padding: 12px 10px; border-radius: 10px; }
+
+            /* FullCalendar 툴바 줄바꿈 대응 */
+            .fc .fc-toolbar {
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+                align-items: stretch;
+            }
+            .fc .fc-toolbar-chunk {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                width: 100%;
+            }
+            .fc .fc-toolbar-title { font-size: 1.15em !important; text-align: center; }
+            .fc .fc-button {
+                padding: 6px 9px !important;
+                font-size: 12px !important;
+            }
+
+            /* 모달 폼 반응형 정돈 */
+            .modal-box { padding: 18px 14px; border-radius: 12px; }
+            .form-row {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 6px;
+                margin-bottom: 12px;
+            }
+            .form-row label { width: auto; font-size: 12.5px; }
+            .date-time-group { flex-direction: row; }
+            .modal-ft { flex-direction: column-reverse; gap: 8px; }
+            .modal-ft .btn { width: 100%; }
+
+            /* 체스 및 오목 게임 상하 레이아웃 */
+            .chess-layout, .omok-layout { flex-direction: column; }
+            .chess-side, .omok-side { width: 100%; flex: auto; }
+            
+            #fab-add-event { bottom: 18px; right: 18px; width: 50px; height: 50px; font-size: 26px; }
+        }
     </style>
 </head>
 <body>
@@ -237,8 +313,23 @@
     <div id="loading-text">클라우드와 동기화 중입니다...</div>
 </div>
 
+<!-- 모바일 전용 상단 네비게이션 바 -->
+<div id="mobile-nav-bar">
+    <button class="mobile-nav-btn" onclick="openSidebarDrawer()">
+        <i class="fa-solid fa-bars"></i> 메뉴
+    </button>
+    <div class="mobile-nav-title">📅 팀 캘린더</div>
+    <button class="mobile-nav-btn" onclick="openAddModalForToday()">
+        <i class="fa-solid fa-plus"></i> 일정
+    </button>
+</div>
+
+<!-- 사이드바 드로어 백드롭 -->
+<div id="sidebar-backdrop" onclick="closeSidebarDrawer()"></div>
+
 <div id="app-wrapper" style="display:none;">
     <div id="sidebar">
+        <button class="sidebar-close-btn" onclick="closeSidebarDrawer()" title="메뉴 닫기">✕</button>
         <div class="sidebar-card">
             <h3>📋 다가오는 일정</h3>
             <div id="upcoming-list"><div class="upcoming-empty">불러오는 중...</div></div>
@@ -249,14 +340,14 @@
         </div>
         <div class="sidebar-card">
             <h3>🎉 재미 기능</h3>
-            <button class="fun-btn" onclick="renderLunchCategories(); openModal('lunchModal')">🍽 점심 메뉴 룰렛</button>
-            <button class="fun-btn" onclick="openChessGame()">♟ AI와 체스 두기</button>
-            <button class="fun-btn" onclick="openOmokGame()">⚫ AI와 오목 두기</button>
+            <button class="fun-btn" onclick="renderLunchCategories(); openModal('lunchModal'); closeSidebarDrawer();">🍽 점심 메뉴 룰렛</button>
+            <button class="fun-btn" onclick="openChessGame(); closeSidebarDrawer();">♟ AI와 체스 두기</button>
+            <button class="fun-btn" onclick="openOmokGame(); closeSidebarDrawer();">⚫ AI와 오목 두기</button>
             <button class="fun-btn" style="background:#eaf2fd; border-color:#4a90e2; color:#2c3e50;" onclick="window.open('module2_online_games.html', '_blank', 'width=650,height=750')">🎮 실시간 대결 (체스·오목)</button>
         </div>
         <div class="sidebar-card">
             <h3>💬 팀 메모장</h3>
-            <button class="fun-btn" onclick="openTeamChat()">메모 보기 / 남기기</button>
+            <button class="fun-btn" onclick="openTeamChat(); closeSidebarDrawer();">메모 보기 / 남기기</button>
         </div>
         <div class="sidebar-card">
             <h3>👥 멤버</h3>
@@ -464,6 +555,21 @@ let calendar;
 let currentEditingEvent = null;
 let colorPickerTargetIdx = null;
 
+// ── 모바일 사이드바 드로어 제어 ──
+function openSidebarDrawer() {
+    const sb = document.getElementById('sidebar');
+    const bd = document.getElementById('sidebar-backdrop');
+    if (sb) sb.classList.add('drawer-open');
+    if (bd) bd.classList.add('active');
+}
+
+function closeSidebarDrawer() {
+    const sb = document.getElementById('sidebar');
+    const bd = document.getElementById('sidebar-backdrop');
+    if (sb) sb.classList.remove('drawer-open');
+    if (bd) bd.classList.remove('active');
+}
+
 // ── Firebase 초기화 (Realtime Database 사용) ──
 let db = null;
 let firebaseReady = false;
@@ -529,7 +635,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (inputEl) inputEl.focus();
     }
 });
-
 
 let members = JSON.parse(localStorage.getItem('cal_members_c1') || 'null') || [
     { name: '멤버1', color: '#3498db' },
@@ -1295,9 +1400,10 @@ async function initCalendarApp() {
     const calEl = document.getElementById('calendar');
     calendar = new FullCalendar.Calendar(calEl, {
         locale: 'ko', initialView: 'dayGridMonth',
-        headerToolbar: { left: 'dayGridMonth,timeGridDay,listMonth', center: 'title', right: 'prev,next' },
-        selectable: true, editable: true, dayMaxEvents: 4, navLinks: true, navLinkDayClick: 'timeGridDay',
+        headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridDay,listMonth' },
+        selectable: true, editable: true, dayMaxEvents: 3, navLinks: true, navLinkDayClick: 'timeGridDay',
         selectLongPressDelay: 120, eventLongPressDelay: 120,
+        height: 'auto',
         events: [],
         dayCellClassNames: (arg) => { const ds = fmtDate(arg.date); if (HOLIDAY_MAP[ds]) return ['holiday-day']; return []; },
         dateClick: (info) => { openNewEventModal(info.dateStr); },
@@ -1359,6 +1465,11 @@ async function initCalendarApp() {
     
     refreshCalendarEvents(savedEvents);
     calendar.render();
+
+    // 화면 회전 및 리사이즈 시 캘린더 크기 재계산
+    window.addEventListener('resize', () => {
+        if (calendar) calendar.updateSize();
+    });
 
     knownEventIds = new Set(savedEvents.map(e => e.id));
     updateNotifBtn();
