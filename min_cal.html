@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>팀 캘린더 & 온라인 대결 통합</title>
+    <title>팀 캘린더 & 온라인 대결 통합 (2026-2027 Edition)</title>
     <!-- FullCalendar & FontAwesome -->
-    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js'></script>
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     
     <!-- Firebase SDK (v10 호환 모드) -->
@@ -16,112 +16,258 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.12.1/chess.min.js"></script>
     
     <style>
+        :root {
+            --bg-body: #eef1f5;
+            --bg-card: #ffffff;
+            --bg-subtle: #f8f9fa;
+            --bg-hover: #f0f2f5;
+            --text-main: #222222;
+            --text-sub: #555555;
+            --text-muted: #888888;
+            --border-color: #e6e8ec;
+            --primary: #4a90e2;
+            --primary-dark: #357abd;
+            --accent-navy: #2c3e50;
+            --shadow-card: 0 4px 16px rgba(20, 32, 50, 0.06);
+        }
+
+        body.dark-mode {
+            --bg-body: #0f172a;
+            --bg-card: #1e293b;
+            --bg-subtle: #334155;
+            --bg-hover: #475569;
+            --text-main: #f1f5f9;
+            --text-sub: #cbd5e1;
+            --text-muted: #94a3b8;
+            --border-color: #334155;
+            --primary: #60a5fa;
+            --primary-dark: #3b82f6;
+            --accent-navy: #1e293b;
+            --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.35);
+        }
+
         *, *::before, *::after { box-sizing: border-box; }
-        body { font-family: 'Malgun Gothic', '맑은 고딕', Apple SD Gothic Neo, sans-serif; background: #eef1f5; margin: 0; padding: 16px; color: #222; -webkit-tap-highlight-color: transparent; }
+        body {
+            font-family: 'Pretendard', 'Malgun Gothic', '맑은 고딕', Apple SD Gothic Neo, sans-serif;
+            background: var(--bg-body);
+            margin: 0;
+            padding: 16px;
+            color: var(--text-main);
+            -webkit-tap-highlight-color: transparent;
+            transition: background 0.25s ease, color 0.25s ease;
+        }
         
         /* 모바일 상단 네비게이션 바 (모바일 전용) */
-        #mobile-nav-bar { display: none; background: #2c3e50; color: #fff; padding: 12px 16px; border-radius: 12px; margin-bottom: 12px; align-items: center; justify-content: space-between; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        #mobile-nav-bar { display: none; background: #2c3e50; color: #fff; padding: 12px 16px; border-radius: 12px; margin-bottom: 12px; align-items: center; justify-content: space-between; box-shadow: 0 2px 8px rgba(0,0,0,0.12); }
         .mobile-nav-title { font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
         .mobile-nav-btn { background: rgba(255,255,255,0.15); border: none; color: #fff; padding: 8px 12px; border-radius: 6px; font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 6px; }
 
-        #app-wrapper { max-width: 1280px; margin: 0 auto; display: flex; gap: 14px; align-items: flex-start; position: relative; }
+        #app-wrapper { max-width: 1360px; margin: 0 auto; display: flex; gap: 16px; align-items: flex-start; position: relative; }
 
         /* 사이드바 스타일 (PC 기본) */
-        #sidebar { width: 220px; flex-shrink: 0; display: flex; flex-direction: column; gap: 12px; }
-        .sidebar-close-btn { display: none; background: none; border: none; font-size: 20px; color: #888; align-self: flex-end; cursor: pointer; padding: 4px; }
-        .sidebar-card { background: #fff; border-radius: 12px; padding: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
-        .sidebar-card h3 { margin: 0 0 12px; font-size: 13px; font-weight: 700; color: #555; text-transform: uppercase; }
+        #sidebar { width: 245px; flex-shrink: 0; display: flex; flex-direction: column; gap: 12px; }
+        .sidebar-close-btn { display: none; background: none; border: none; font-size: 20px; color: var(--text-muted); align-self: flex-end; cursor: pointer; padding: 4px; }
+        .sidebar-card { background: var(--bg-card); border-radius: 14px; padding: 16px; box-shadow: var(--shadow-card); border: 1px solid var(--border-color); transition: background 0.25s, border-color 0.25s; }
+        .sidebar-card h3 { margin: 0 0 12px; font-size: 13px; font-weight: 700; color: var(--text-sub); text-transform: uppercase; display: flex; align-items: center; justify-content: space-between; }
 
         #member-list { display: flex; flex-direction: column; gap: 8px; }
-        .member-row { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 8px; background: #f8f9fa; cursor: pointer; transition: background .15s; }
-        .member-row:hover { background: #f0f0f0; }
+        .member-row { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 8px; background: var(--bg-subtle); cursor: pointer; transition: background .15s; }
+        .member-row:hover { background: var(--bg-hover); }
         .member-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; border: 2px solid rgba(0,0,0,.12); }
-        .member-name { flex: 1; font-size: 13px; font-weight: 500; border: none; background: transparent; outline: none; color: #222; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+        .member-name { flex: 1; font-size: 13px; font-weight: 600; border: none; background: transparent; outline: none; color: var(--text-main); cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
         .member-color-btn { width: 22px; height: 22px; border-radius: 4px; border: none; cursor: pointer; padding: 0; flex-shrink: 0; }
-        .member-del { background: none; border: none; color: #bbb; cursor: pointer; font-size: 16px; padding: 0 2px; line-height: 1; }
-        #btn-add-member { width: 100%; margin-top: 8px; padding: 10px; border: 1.5px dashed #aaa; border-radius: 8px; background: none; color: #777; font-size: 13px; cursor: pointer; }
+        .member-del { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 16px; padding: 0 2px; line-height: 1; }
+        .member-del:hover { color: #e74c3c; }
+        #btn-add-member { width: 100%; margin-top: 8px; padding: 10px; border: 1.5px dashed var(--text-muted); border-radius: 8px; background: none; color: var(--text-sub); font-size: 13px; font-weight: 600; cursor: pointer; transition: .15s; }
+        #btn-add-member:hover { border-color: var(--primary); color: var(--primary); }
 
-        .legend-item { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #555; margin-bottom: 6px; }
+        .legend-item { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-sub); margin-bottom: 6px; }
         .legend-dot { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
 
-        .sync-bar-mini { background: #2c3e50; color: #ddd; border-radius: 10px; padding: 10px 14px; display: flex; flex-direction: column; gap: 8px; }
+        .sync-bar-mini { background: linear-gradient(135deg, #2c3e50, #1a2533); color: #ddd; border-radius: 12px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
         #sync-status-txt { font-weight: 600; font-size: 12px; }
-        .sync-btn-mini { background: #f1c40f; border: none; padding: 10px; border-radius: 6px; cursor: pointer; font-weight: bold; color: #2c3e50; width: 100%; }
+        .sync-btn-mini { background: #f1c40f; border: none; padding: 10px; border-radius: 8px; cursor: pointer; font-weight: bold; color: #2c3e50; width: 100%; transition: .15s; }
         #notifToggleBtn { background: #46566b; color: #ddd; }
         #notifToggleBtn.notif-on { background: #2ecc71; color: #fff; }
-        .notif-hint { font-size: 10px; color: #8899aa; line-height: 1.5; margin-top: -2px; }
-        #notif-toast { position: fixed; top: 20px; right: 20px; background: #2c3e50; color: #fff; padding: 14px 18px; border-radius: 10px; font-size: 13px; box-shadow: 0 6px 20px rgba(0,0,0,.25); display: none; z-index: 9999; max-width: 280px; }
+        .notif-hint { font-size: 10.5px; color: var(--text-muted); line-height: 1.5; margin-top: 6px; }
+        #notif-toast { position: fixed; top: 20px; right: 20px; background: #1e293b; color: #fff; padding: 14px 18px; border-radius: 12px; font-size: 13px; font-weight: 600; box-shadow: 0 8px 24px rgba(0,0,0,.3); display: none; z-index: 10001; max-width: 320px; border-left: 4px solid #4a90e2; }
 
-        #upcoming-list { display: flex; flex-direction: column; gap: 2px; max-height: 260px; overflow-y: auto; }
-        .upcoming-item { display: flex; align-items: center; gap: 10px; padding: 7px 4px; border-bottom: 1px solid #f2f2f2; }
+        #upcoming-list, #activity-log-list { display: flex; flex-direction: column; gap: 4px; max-height: 240px; overflow-y: auto; }
+        .upcoming-item { display: flex; align-items: center; gap: 10px; padding: 7px 6px; border-bottom: 1px solid var(--border-color); border-radius: 6px; transition: background .12s; cursor: pointer; }
+        .upcoming-item:hover { background: var(--bg-subtle); }
         .upcoming-item:last-child { border-bottom: none; }
-        .upcoming-dday { flex-shrink: 0; font-size: 10.5px; font-weight: 700; color: #fff; padding: 3px 7px; border-radius: 20px; text-align: center; min-width: 42px; }
+        .upcoming-dday { flex-shrink: 0; font-size: 10.5px; font-weight: 700; color: #fff; padding: 3px 7px; border-radius: 20px; text-align: center; min-width: 44px; }
         .upcoming-info { min-width: 0; flex: 1; }
-        .upcoming-title { font-size: 12.5px; font-weight: 600; color: #222; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .upcoming-meta { font-size: 10.5px; color: #999; margin-top: 1px; }
-        .upcoming-empty { font-size: 12px; color: #999; text-align: center; padding: 10px 0; }
+        .upcoming-title { font-size: 12.5px; font-weight: 600; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .upcoming-meta { font-size: 10.5px; color: var(--text-muted); margin-top: 2px; }
+        .upcoming-empty { font-size: 12px; color: var(--text-muted); text-align: center; padding: 12px 0; }
 
-        .member-eye-btn { background: none; border: none; cursor: pointer; font-size: 13px; padding: 0 2px; flex-shrink: 0; opacity: 0.65; }
+        .member-eye-btn { background: none; border: none; cursor: pointer; font-size: 13px; padding: 0 2px; flex-shrink: 0; opacity: 0.75; }
         .member-row.member-hidden { opacity: 0.4; }
         .member-row.member-hidden .member-name { text-decoration: line-through; }
 
-        .fc-event.event-completed { opacity: 0.4; text-decoration: line-through; }
-        .event-tooltip { position: absolute; z-index: 100000; background: #2c3e50; color: #fff; padding: 7px 11px; border-radius: 7px; font-size: 12.5px; max-width: 260px; box-shadow: 0 4px 14px rgba(0,0,0,.28); pointer-events: none; white-space: normal; word-break: break-word; line-height: 1.4; }
+        .fc-event.event-completed { opacity: 0.45; text-decoration: line-through; }
+        .event-tooltip { position: absolute; z-index: 100000; background: #1e293b; color: #fff; padding: 9px 13px; border-radius: 9px; font-size: 12.5px; max-width: 280px; box-shadow: 0 6px 20px rgba(0,0,0,.32); pointer-events: none; white-space: normal; word-break: break-word; line-height: 1.45; }
 
-        .fc-event-main-custom { display: flex; align-items: center; gap: 4px; overflow: hidden; width: 100%; }
-        .fc-event-title-custom { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; }
-        .event-link-icon { flex-shrink: 0; font-size: 11px; text-decoration: none; opacity: 0.85; }
-        .event-link-icon:hover { opacity: 1; }
+        .fc-event-main-custom { display: flex; align-items: center; gap: 4px; overflow: hidden; width: 100%; padding: 1px 3px; }
+        .fc-event-cat-badge { font-size: 10px; flex-shrink: 0; }
+        .fc-event-title-custom { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; font-weight: 600; }
+        .event-link-icon { flex-shrink: 0; font-size: 11px; text-decoration: none; opacity: 0.9; }
+        .event-link-icon:hover { opacity: 1; transform: scale(1.1); }
 
-        .fc-popover { border-radius: 10px !important; border: none !important; box-shadow: 0 8px 26px rgba(0,0,0,.2) !important; overflow: hidden; }
-        .fc-popover-header { background: #2c3e50 !important; color: #fff !important; padding: 8px 10px !important; }
+        .fc-popover { border-radius: 12px !important; border: 1px solid var(--border-color) !important; box-shadow: 0 10px 30px rgba(0,0,0,.25) !important; overflow: hidden; background: var(--bg-card) !important; }
+        .fc-popover-header { background: #2c3e50 !important; color: #fff !important; padding: 8px 12px !important; }
         .fc-popover-title { font-weight: 700 !important; font-size: 13px !important; }
-        .fc-popover-close { color: #fff !important; opacity: 0.8; }
+        .fc-popover-close { color: #fff !important; opacity: 0.85; }
 
-        #fab-add-event { position: fixed; bottom: 26px; right: 26px; width: 56px; height: 56px; border-radius: 50%; background: #4a90e2; color: #fff; font-size: 30px; border: none; box-shadow: 0 6px 18px rgba(74,144,226,.4); cursor: pointer; z-index: 800; display: flex; align-items: center; justify-content: center; line-height: 1; transition: transform .15s, background .15s; }
-        #fab-add-event:hover { background: #3a7bd5; transform: scale(1.06); }
+        #fab-add-event { position: fixed; bottom: 26px; right: 26px; width: 56px; height: 56px; border-radius: 50%; background: linear-gradient(135deg, #4a90e2, #2563eb); color: #fff; font-size: 30px; border: none; box-shadow: 0 8px 22px rgba(37, 99, 235, 0.45); cursor: pointer; z-index: 800; display: flex; align-items: center; justify-content: center; line-height: 1; transition: transform .15s, box-shadow .15s; }
+        #fab-add-event:hover { transform: scale(1.08); box-shadow: 0 10px 26px rgba(37, 99, 235, 0.55); }
 
-        .fun-btn { width: 100%; margin-bottom: 8px; padding: 10px 12px; border-radius: 8px; border: 1px solid #e0e0e0; background: #fff; cursor: pointer; font-size: 13px; font-weight: 600; color: #333; text-align: left; transition: background .15s; }
-        .fun-btn:hover { background: #f5f5f5; }
+        .fun-btn { width: 100%; margin-bottom: 8px; padding: 10px 12px; border-radius: 9px; border: 1px solid var(--border-color); background: var(--bg-subtle); cursor: pointer; font-size: 13px; font-weight: 600; color: var(--text-main); text-align: left; transition: all .15s; display: flex; align-items: center; justify-content: space-between; }
+        .fun-btn:hover { background: var(--bg-hover); transform: translateY(-1px); }
         .fun-btn:last-child { margin-bottom: 0; }
+        .fun-btn-highlight { background: linear-gradient(135deg, #fff7ed, #ffedd5); border-color: #fdba74; color: #9a3412; }
+        body.dark-mode .fun-btn-highlight { background: linear-gradient(135deg, #431407, #7c2d12); border-color: #9a3412; color: #ffedd5; }
 
-        .cat-pill { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 20px; border: 1.5px solid #ddd; font-size: 12.5px; cursor: pointer; user-select: none; margin: 0 6px 6px 0; transition: .12s; }
-        .cat-pill:hover { background: #f7f7f7; }
+        .cat-pill { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 20px; border: 1.5px solid var(--border-color); font-size: 12.5px; cursor: pointer; user-select: none; margin: 0 6px 6px 0; transition: .12s; color: var(--text-main); background: var(--bg-subtle); }
+        .cat-pill:hover { background: var(--bg-hover); }
         .cat-pill input { accent-color: #4a90e2; }
         .lunch-result-card { background: linear-gradient(135deg, #fff4e6, #ffe4c4); border-radius: 14px; padding: 30px 12px; text-align: center; position: relative; overflow: hidden; margin-bottom: 14px; }
-        .lunch-spin-icon { font-size: 30px; display: inline-block; margin-bottom: 8px; }
+        .lunch-spin-icon { font-size: 34px; display: inline-block; margin-bottom: 8px; }
         .lunch-spin-icon.spinning { animation: lunchSpin .45s linear infinite; }
         @keyframes lunchSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         #lunchResult { font-size: 24px; font-weight: 800; color: #c9691a; }
         .lunch-confetti { position: absolute; font-size: 18px; pointer-events: none; animation: lunchConfettiUp .9s ease-out forwards; left: 50%; top: 60%; }
         @keyframes lunchConfettiUp { from { transform: translate(-50%,0) scale(1); opacity: 1; } to { transform: translate(-50%,-70px) scale(1.4); opacity: 0; } }
 
-        .dday-banner { position: relative; border-radius: 14px; overflow: hidden; margin-bottom: 16px; min-height: 110px; background-size: cover; background-position: center; box-shadow: 0 6px 18px rgba(0,0,0,.15); }
-        .dday-banner-overlay { position: relative; z-index: 1; height: 100%; min-height: 110px; display: flex; align-items: center; justify-content: space-between; padding: 18px 20px; }
-        .dday-banner.has-image .dday-banner-overlay { background: linear-gradient(90deg, rgba(0,0,0,.6), rgba(0,0,0,.15)); }
+        /* 상단 디데이 배너 */
+        .dday-banner { position: relative; border-radius: 14px; overflow: hidden; margin-bottom: 14px; min-height: 108px; background-size: cover; background-position: center; box-shadow: 0 6px 18px rgba(0,0,0,.12); transition: transform .2s; }
+        .dday-banner-overlay { position: relative; z-index: 1; height: 100%; min-height: 108px; display: flex; align-items: center; justify-content: space-between; padding: 18px 22px; }
+        .dday-banner.has-image .dday-banner-overlay { background: linear-gradient(90deg, rgba(0,0,0,.65), rgba(0,0,0,.2)); }
         .dday-banner-content { color: #fff; min-width: 0; flex: 1; }
-        .dday-banner-num { font-size: clamp(28px, 6vw, 40px); font-weight: 800; line-height: 1; text-shadow: 0 2px 8px rgba(0,0,0,.35); }
+        .dday-banner-num { font-size: clamp(26px, 5vw, 38px); font-weight: 800; line-height: 1; text-shadow: 0 2px 8px rgba(0,0,0,.35); }
         .dday-banner-title { font-size: clamp(14px, 4vw, 17px); font-weight: 700; margin-top: 6px; text-shadow: 0 1px 4px rgba(0,0,0,.35); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .dday-banner-date { font-size: 12px; opacity: .85; margin-top: 2px; }
-        .dday-banner-edit { background: rgba(255,255,255,.2); border: 1px solid rgba(255,255,255,.4); color: #fff; padding: 8px 12px; border-radius: 8px; font-size: 12px; cursor: pointer; flex-shrink: 0; margin-left: 10px; }
-        .dday-banner-edit:hover { background: rgba(255,255,255,.32); }
-        .dday-banner.empty { cursor: pointer; }
-        .dday-banner.empty .dday-banner-content { color: #eee; font-size: 13.5px; font-weight: 600; }
+        .dday-banner-date { font-size: 12px; opacity: .88; margin-top: 3px; }
+        .dday-banner-edit { background: rgba(255,255,255,.22); border: 1px solid rgba(255,255,255,.45); color: #fff; padding: 8px 13px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; flex-shrink: 0; margin-left: 10px; backdrop-filter: blur(4px); }
+        .dday-banner-edit:hover { background: rgba(255,255,255,.35); }
+        .dday-banner.empty { cursor: pointer; background: linear-gradient(120deg, #3a7bd5, #2c3e50); }
+        .dday-banner.empty .dday-banner-content { color: #f8fafc; font-size: 14px; font-weight: 600; }
 
-        .chess-modal-box { width: 100%; max-width: 600px; padding: 20px; }
+        /* 새로 추가된 스마트 툴바 & 통계 바 */
+        .smart-control-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--bg-subtle);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 10px 14px;
+            margin-bottom: 14px;
+        }
+        .search-input-wrap {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 6px 12px;
+            flex: 1 1 200px;
+            max-width: 320px;
+        }
+        .search-input-wrap input {
+            border: none;
+            background: transparent;
+            outline: none;
+            color: var(--text-main);
+            font-size: 13px;
+            width: 100%;
+        }
+        .filter-chips-wrap {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            align-items: center;
+        }
+        .filter-chip {
+            padding: 5px 11px;
+            border-radius: 20px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-card);
+            color: var(--text-sub);
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all .15s;
+        }
+        .filter-chip:hover { border-color: var(--primary); color: var(--primary); }
+        .filter-chip.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+
+        .quick-action-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+        .quick-pill-btn {
+            padding: 6px 11px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-card);
+            color: var(--text-main);
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all .15s;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .quick-pill-btn:hover { background: var(--bg-hover); border-color: var(--primary); }
+        .quick-pill-btn.gold-btn {
+            background: linear-gradient(135deg, #f59e0b, #ea580c);
+            color: #fff;
+            border: none;
+            box-shadow: 0 3px 10px rgba(234, 88, 12, 0.25);
+        }
+        .quick-pill-btn.gold-btn:hover { opacity: 0.94; transform: translateY(-1px); }
+
+        /* 월간 요약 미니 대시보드 */
+        .monthly-stats-strip {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+        .stat-mini-card {
+            background: var(--bg-subtle);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 10px 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .stat-mini-label { font-size: 11.5px; color: var(--text-muted); font-weight: 600; }
+        .stat-mini-val { font-size: 16px; font-weight: 800; color: var(--text-main); }
+
+        /* 체스 및 오목 모달 */
+        .chess-modal-box { width: 100%; max-width: 620px; padding: 20px; }
         .chess-layout { display: flex; gap: 16px; align-items: flex-start; }
         .chess-main { flex: 1 1 340px; min-width: 0; width: 100%; }
-        .chess-side { flex: 1 1 180px; min-width: 0; display: flex; flex-direction: column; gap: 12px; width: 100%; }
+        .chess-side { flex: 1 1 190px; min-width: 0; display: flex; flex-direction: column; gap: 12px; width: 100%; }
 
-        .chess-player-row { display: flex; align-items: center; justify-content: space-between; padding: 2px; }
-        .chess-player { font-size: 13px; font-weight: 700; color: #2c3e50; display: flex; align-items: center; gap: 6px; }
+        .chess-player-row { display: flex; align-items: center; justify-content: space-between; padding: 4px 2px; }
+        .chess-player { font-size: 13px; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 6px; }
         .chess-avatar { font-size: 19px; }
         .chess-level-badge { background: #4a90e2; color: #fff; font-size: 10.5px; font-weight: 700; padding: 2px 8px; border-radius: 10px; margin-left: 2px; }
-        .chess-captured { display: flex; gap: 0px; font-size: 15px; min-height: 18px; opacity: 0.8; letter-spacing: -2px; }
+        .chess-captured { display: flex; gap: 1px; font-size: 15px; min-height: 20px; opacity: 0.9; flex-wrap: wrap; }
 
         .chess-board-wrap { background: linear-gradient(135deg, #4a3a2c, #241b14); padding: 8px; border-radius: 10px; box-shadow: 0 10px 28px rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,255,255,.06); margin: 6px 0; }
         .chess-board { display: grid; grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(8, 1fr); width: 100%; aspect-ratio: 1 / 1; border-radius: 4px; overflow: hidden; box-shadow: 0 4px 16px rgba(0,0,0,.45); }
-        .chess-sq { display: flex; align-items: center; justify-content: center; font-size: clamp(16px, 4.5vw, 30px); cursor: pointer; position: relative; user-select: none; transition: background-color .12s; }
+        .chess-sq { display: flex; align-items: center; justify-content: center; font-size: clamp(20px, 4.5vw, 32px); cursor: pointer; position: relative; user-select: none; transition: background-color .12s; }
         .chess-sq.light { background: #f0d9b5; }
         .chess-sq.dark { background: #b58863; }
         .chess-sq .coord-file, .chess-sq .coord-rank { position: absolute; font-size: 8px; font-weight: 800; opacity: 0.55; pointer-events: none; }
@@ -129,105 +275,154 @@
         .chess-sq.dark .coord-file, .chess-sq.dark .coord-rank { color: #f0d9b5; }
         .coord-file { bottom: 2px; right: 3px; }
         .coord-rank { top: 2px; left: 3px; }
-        .chess-sq.selected { box-shadow: inset 0 0 0 3px #4a90e2; }
-        .chess-sq.last-move { background-color: rgba(255, 216, 61, 0.5) !important; }
+        .chess-sq.selected { box-shadow: inset 0 0 0 3px #2563eb; background-color: rgba(59, 130, 246, 0.35) !important; }
+        .chess-sq.last-move { background-color: rgba(255, 216, 61, 0.52) !important; }
         .chess-sq.in-check { background: radial-gradient(circle, rgba(255,50,50,.85) 0%, rgba(255,50,50,0) 70%) !important; }
-        .chess-sq.hint::after { content: ''; position: absolute; width: 12px; height: 12px; border-radius: 50%; background: rgba(20,20,20,.28); }
-        .chess-sq.hint-capture::before { content: ''; position: absolute; inset: 2px; border-radius: 50%; border: 3px solid rgba(200,20,20,.6); }
-        .chess-piece { position: relative; z-index: 2; transition: transform .12s; }
+        .chess-sq.hint::after { content: ''; position: absolute; width: 13px; height: 13px; border-radius: 50%; background: rgba(20,20,20,.32); }
+        .chess-sq.hint-capture::before { content: ''; position: absolute; inset: 3px; border-radius: 50%; border: 3px solid rgba(220,38,38,.7); }
+        .chess-piece { position: relative; z-index: 2; transition: transform .12s; line-height: 1; }
         .chess-sq:hover .chess-piece { transform: scale(1.08); }
-        .chess-piece.pw { color: #fbfbfb; text-shadow: -1px -1px 0 #1a1a1a, 1px -1px 0 #1a1a1a, -1px 1px 0 #1a1a1a, 1px 1px 0 #1a1a1a, 0 2px 3px rgba(0,0,0,.4); }
-        .chess-piece.pb { color: #181818; text-shadow: 0 1px 1px rgba(255,255,255,.35); }
+        .chess-piece.pw { color: #ffffff; text-shadow: -1px -1px 0 #1a1a1a, 1px -1px 0 #1a1a1a, -1px 1px 0 #1a1a1a, 1px 1px 0 #1a1a1a, 0 2px 4px rgba(0,0,0,.45); }
+        .chess-piece.pb { color: #181818; text-shadow: 0 1px 2px rgba(255,255,255,.45); }
 
-        #chessStatus.chess-status-banner { text-align: center; font-size: 13px; font-weight: 700; padding: 8px; border-radius: 8px; background: #eef2f7; color: #2c3e50; margin-top: 4px; }
+        #chessStatus.chess-status-banner { text-align: center; font-size: 13px; font-weight: 700; padding: 9px; border-radius: 8px; background: var(--bg-subtle); color: var(--text-main); margin-top: 6px; }
         .chess-status-banner.status-check { background: #fff3cd; color: #8a6d1a; }
         .chess-status-banner.status-win { background: #d4edda; color: #1e7e34; }
         .chess-status-banner.status-lose { background: #f8d7da; color: #a71d2a; }
         .chess-status-banner.status-draw { background: #e2e3e5; color: #41464b; }
 
         .chess-controls { display: flex; gap: 8px; }
-        .chess-controls select { flex: 1; padding: 8px; border-radius: 7px; border: 1px solid #ddd; font-size: 12.5px; }
-        .chess-movelist-wrap { flex: 1; background: #f8f9fa; border-radius: 8px; padding: 10px; display: flex; flex-direction: column; min-height: 140px; }
-        .chess-movelist-title { font-size: 11px; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: .04em; margin-bottom: 6px; }
-        .chess-movelist { flex: 1; overflow-y: auto; font-size: 12.5px; line-height: 1.9; color: #333; font-family: 'Consolas', 'SF Mono', monospace; max-height: 160px; }
-        .chess-move-pair { display: flex; gap: 6px; }
-        .chess-move-num { color: #999; width: 22px; flex-shrink: 0; }
+        .chess-controls select { flex: 1; padding: 8px; border-radius: 7px; border: 1px solid var(--border-color); background: var(--bg-subtle); color: var(--text-main); font-size: 12.5px; }
+        .chess-movelist-wrap { flex: 1; background: var(--bg-subtle); border-radius: 8px; padding: 10px; display: flex; flex-direction: column; min-height: 160px; border: 1px solid var(--border-color); }
+        .chess-movelist-title { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 6px; }
+        .chess-movelist { flex: 1; overflow-y: auto; font-size: 12.5px; line-height: 1.9; color: var(--text-main); font-family: 'Consolas', 'SF Mono', monospace; max-height: 180px; }
+        .chess-move-pair { display: flex; gap: 8px; padding: 1px 4px; border-radius: 4px; }
+        .chess-move-pair:nth-child(odd) { background: rgba(0,0,0,0.03); }
+        .chess-move-num { color: var(--text-muted); width: 26px; flex-shrink: 0; }
 
-        .omok-modal-box { width: 100%; max-width: 580px; padding: 20px; }
+        .omok-modal-box { width: 100%; max-width: 600px; padding: 20px; }
         .omok-layout { display: flex; gap: 16px; align-items: flex-start; }
-        .omok-main { flex: 1 1 340px; min-width: 0; width: 100%; }
-        .omok-side { flex: 1 1 160px; min-width: 0; display: flex; flex-direction: column; gap: 12px; width: 100%; }
-        .omok-board-wrap { background: linear-gradient(135deg, #e8c079, #c99b52); padding: 8px; border-radius: 10px; box-shadow: 0 10px 26px rgba(0,0,0,.3), inset 0 0 0 1px rgba(255,255,255,.15); }
-        .omok-board { display: grid; position: relative; box-shadow: 0 3px 10px rgba(0,0,0,.25); width: 100%; aspect-ratio: 1 / 1; }
-        .omok-cell { position: relative; border-right: 1px solid rgba(0,0,0,.35); border-bottom: 1px solid rgba(0,0,0,.35); cursor: pointer; }
-        .omok-star::after { content: ''; position: absolute; width: 4px; height: 4px; border-radius: 50%; background: rgba(0,0,0,.5); left: 50%; top: 50%; transform: translate(-50%,-50%); }
-        .omok-stone { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); width: 88%; height: 88%; border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,.4); }
-        .omok-stone.black { background: radial-gradient(circle at 35% 30%, #666, #000 70%); }
-        .omok-stone.white { background: radial-gradient(circle at 35% 30%, #fff, #ccc 75%); border: 1px solid rgba(0,0,0,.15); }
-        .omok-stone.last-move::after { content: ''; position: absolute; left: 50%; top: 50%; width: 30%; height: 30%; border-radius: 50%; background: #4a90e2; transform: translate(-50%,-50%); }
+        .omok-main { flex: 1 1 350px; min-width: 0; width: 100%; }
+        .omok-side { flex: 1 1 170px; min-width: 0; display: flex; flex-direction: column; gap: 12px; width: 100%; }
+        .omok-board-wrap { background: linear-gradient(135deg, #e8c079, #c99b52); padding: 10px; border-radius: 10px; box-shadow: 0 10px 26px rgba(0,0,0,.3), inset 0 0 0 1px rgba(255,255,255,.15); margin: 6px 0; }
+        .omok-board { display: grid; grid-template-columns: repeat(15, 1fr); grid-template-rows: repeat(15, 1fr); position: relative; box-shadow: 0 3px 10px rgba(0,0,0,.25); width: 100%; aspect-ratio: 1 / 1; background: #deb871; border: 1px solid rgba(0,0,0,.45); }
+        .omok-cell { position: relative; border-right: 1px solid rgba(0,0,0,.32); border-bottom: 1px solid rgba(0,0,0,.32); cursor: pointer; }
+        .omok-cell:hover { background: rgba(255,255,255,0.22); }
+        .omok-star::after { content: ''; position: absolute; width: 5px; height: 5px; border-radius: 50%; background: rgba(0,0,0,.6); left: 50%; top: 50%; transform: translate(-50%,-50%); pointer-events: none; }
+        .omok-stone { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); width: 84%; height: 84%; border-radius: 50%; box-shadow: 0 2px 5px rgba(0,0,0,.45); z-index: 2; pointer-events: none; }
+        .omok-stone.black { background: radial-gradient(circle at 35% 30%, #666, #0a0a0a 72%); }
+        .omok-stone.white { background: radial-gradient(circle at 35% 30%, #fff, #cfcfcf 75%); border: 1px solid rgba(0,0,0,.18); }
+        .omok-stone.last-move::after { content: ''; position: absolute; left: 50%; top: 50%; width: 32%; height: 32%; border-radius: 50%; background: #ef4444; transform: translate(-50%,-50%); box-shadow: 0 0 4px rgba(239,68,68,.8); }
         .omok-player-row { display: flex; align-items: center; justify-content: space-between; padding: 2px; }
-        .omok-status-banner { text-align: center; font-size: 13px; font-weight: 700; padding: 8px; border-radius: 8px; background: #eef2f7; color: #2c3e50; margin-top: 4px; }
+        .omok-status-banner { text-align: center; font-size: 13px; font-weight: 700; padding: 9px; border-radius: 8px; background: var(--bg-subtle); color: var(--text-main); margin-top: 6px; }
         .omok-status-banner.status-win { background: #d4edda; color: #1e7e34; }
         .omok-status-banner.status-lose { background: #f8d7da; color: #a71d2a; }
         .omok-status-banner.status-draw { background: #e2e3e5; color: #41464b; }
 
-        #password-gate { position: fixed; inset: 0; background: #1c2530; display: flex; align-items: center; justify-content: center; z-index: 99999; padding: 16px; }
-        .pw-box { background: #fff; border-radius: 14px; padding: 32px 28px; width: 300px; max-width: 100%; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,.3); }
-        .pw-box h2 { margin: 0 0 6px; font-size: 18px; color: #2c3e50; }
-        .pw-box p { font-size: 12px; color: #888; margin: 0 0 18px; }
-        .pw-box input { width: 100%; padding: 12px; border: 1.5px solid #ddd; border-radius: 8px; font-size: 16px; text-align: center; letter-spacing: 3px; margin-bottom: 12px; outline: none; }
-        .pw-box input:focus { border-color: #4a90e2; }
-        .pw-box button { width: 100%; padding: 12px; border: none; border-radius: 8px; background: #4a90e2; color: #fff; font-weight: 700; font-size: 14px; cursor: pointer; }
-        .pw-box button:hover { background: #3a7bd5; }
-        .pw-error { color: #e74c3c; font-size: 12px; margin-top: 8px; display: none; }
+        /* 비밀번호 게이트 */
+        #password-gate { position: fixed; inset: 0; background: radial-gradient(circle at top, #1e293b, #0f172a); display: flex; align-items: center; justify-content: center; z-index: 99999; padding: 16px; }
+        .pw-box { background: #fff; border-radius: 16px; padding: 34px 28px; width: 320px; max-width: 100%; text-align: center; box-shadow: 0 16px 48px rgba(0,0,0,.4); }
+        .pw-box h2 { margin: 0 0 6px; font-size: 19px; color: #1e293b; }
+        .pw-box p { font-size: 12.5px; color: #64748b; margin: 0 0 18px; }
+        .pw-box input { width: 100%; padding: 12px; border: 1.5px solid #cbd5e1; border-radius: 9px; font-size: 17px; text-align: center; letter-spacing: 4px; margin-bottom: 12px; outline: none; color: #1e293b; }
+        .pw-box input:focus { border-color: #4a90e2; box-shadow: 0 0 0 3px rgba(74,144,226,.15); }
+        .pw-box button { width: 100%; padding: 12px; border: none; border-radius: 9px; background: linear-gradient(135deg, #4a90e2, #2563eb); color: #fff; font-weight: 700; font-size: 14px; cursor: pointer; }
+        .pw-box button:hover { opacity: 0.95; }
+        .pw-error { color: #e74c3c; font-size: 12px; margin-top: 8px; display: none; font-weight: 600; }
 
-        #calendar-wrap { flex: 1; background: #fff; border-radius: 12px; padding: 18px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); min-width: 0; width: 100%; }
-        .fc .fc-toolbar-title { font-size: 1.3em; font-weight: 700; }
-        .fc .fc-button-primary { background-color: #4a90e2 !important; border-color: #4a90e2 !important; font-size: 13px !important; text-transform: capitalize; }
+        #calendar-wrap { flex: 1; background: var(--bg-card); border-radius: 16px; padding: 20px; box-shadow: var(--shadow-card); border: 1px solid var(--border-color); min-width: 0; width: 100%; transition: background 0.25s, border-color 0.25s; }
+        .fc .fc-toolbar-title { font-size: 1.35em; font-weight: 800; color: var(--text-main); }
+        .fc .fc-button-primary { background-color: var(--primary) !important; border-color: var(--primary) !important; font-size: 13px !important; font-weight: 600 !important; text-transform: capitalize; border-radius: 8px !important; }
         .fc .fc-button-active { background-color: #2c3e50 !important; border-color: #2c3e50 !important; }
+        .fc-theme-standard td, .fc-theme-standard th, .fc-theme-standard .fc-scrollgrid { border-color: var(--border-color) !important; }
         .fc-day-sat .fc-daygrid-day-number, .fc-day-sat .fc-col-header-cell-cushion { color: #2a6dd9 !important; }
         .fc-day-sun .fc-daygrid-day-number, .fc-day-sun .fc-col-header-cell-cushion { color: #e03030 !important; }
-        .holiday-day .fc-daygrid-day-number { color: #e03030 !important; font-weight: 700; }
-        .fc-event.holiday-event { background: transparent !important; border: none !important; color: #e03030 !important; font-size: 10px !important; font-weight: 600; pointer-events: none; }
+        .holiday-day { background-color: rgba(224, 48, 48, 0.035); }
+        body.dark-mode .holiday-day { background-color: rgba(239, 68, 68, 0.08); }
+        .holiday-day .fc-daygrid-day-number { color: #e03030 !important; font-weight: 800; }
+        .fc-event.holiday-event { background: rgba(224, 48, 48, 0.1) !important; border: none !important; color: #d62828 !important; font-size: 10.5px !important; font-weight: 700; border-radius: 4px !important; padding: 1px 4px !important; }
+        body.dark-mode .fc-event.holiday-event { background: rgba(248, 113, 113, 0.18) !important; color: #fca5a5 !important; }
+        body.dark-mode .fc-day-today { background-color: rgba(96, 165, 250, 0.12) !important; }
 
-        .modal-overlay { display: none; position: fixed; z-index: 2000; inset: 0; background: rgba(0,0,0,.45); align-items: center; justify-content: center; padding: 12px; }
+        /* 모달 공통 */
+        .modal-overlay { display: none; position: fixed; z-index: 2000; inset: 0; background: rgba(15, 23, 42, 0.55); backdrop-filter: blur(3px); align-items: center; justify-content: center; padding: 12px; }
         .modal-overlay.open { display: flex; }
-        .modal-box { background: #fff; border-radius: 14px; padding: 24px; width: 500px; max-width: 100%; max-height: 90vh; overflow-y: auto; box-shadow: 0 8px 32px rgba(0,0,0,.18); }
-        .modal-hd { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding-bottom: 12px; margin-bottom: 16px; }
-        .modal-hd h2 { margin: 0; font-size: 17px; color: #1a1a2e; }
-        .close-x { font-size: 26px; cursor: pointer; color: #999; background: none; border: none; padding: 0 8px; line-height: 1; }
+        .modal-box { background: var(--bg-card); color: var(--text-main); border-radius: 16px; padding: 24px; width: 520px; max-width: 100%; max-height: 90vh; overflow-y: auto; box-shadow: 0 14px 44px rgba(0,0,0,.28); border: 1px solid var(--border-color); }
+        .modal-hd { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 16px; }
+        .modal-hd h2 { margin: 0; font-size: 17px; color: var(--text-main); font-weight: 800; }
+        .close-x { font-size: 26px; cursor: pointer; color: var(--text-muted); background: none; border: none; padding: 0 8px; line-height: 1; }
         .form-row { display: flex; align-items: center; gap: 10px; margin-bottom: 13px; }
-        .form-row label { width: 100px; font-size: 13px; font-weight: 600; flex-shrink: 0; color: #444; }
+        .form-row label { width: 100px; font-size: 13px; font-weight: 600; flex-shrink: 0; color: var(--text-sub); }
         .date-time-group { display: flex; gap: 8px; flex: 1; min-width: 0; }
-        .form-row input[type="text"], .form-row input[type="date"], .form-row input[type="time"], .form-row input[type="url"], .form-row select { flex: 1; padding: 10px 11px; border: 1px solid #ddd; border-radius: 7px; font-size: 14px; background: #fafafa; outline: none; width: 100%; min-width: 0; }
-        .form-row input[type="color"] { width: 44px; height: 40px; border: 1px solid #ddd; border-radius: 7px; cursor: pointer; padding: 2px; }
-        .modal-ft { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; padding-top: 14px; border-top: 1px solid #eee; }
-        .btn { padding: 11px 18px; border: none; border-radius: 7px; cursor: pointer; font-size: 14px; font-weight: 600; }
-        .btn-primary { background: #4a90e2; color: #fff; }
-        .btn-secondary { background: #f1f2f6; color: #333; }
+        .form-row input[type="text"], .form-row input[type="date"], .form-row input[type="time"], .form-row input[type="url"], .form-row select, .form-row textarea {
+            flex: 1; padding: 10px 11px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 13.5px; background: var(--bg-subtle); color: var(--text-main); outline: none; width: 100%; min-width: 0; font-family: inherit;
+        }
+        .form-row input[type="color"] { width: 44px; height: 40px; border: 1px solid var(--border-color); border-radius: 7px; cursor: pointer; padding: 2px; background: var(--bg-subtle); }
+        .modal-ft { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; padding-top: 14px; border-top: 1px solid var(--border-color); }
+        .btn { padding: 10px 18px; border: none; border-radius: 8px; cursor: pointer; font-size: 13.5px; font-weight: 700; transition: .15s; }
+        .btn-primary { background: var(--primary); color: #fff; }
+        .btn-primary:hover { background: var(--primary-dark); }
+        .btn-secondary { background: var(--bg-subtle); color: var(--text-main); border: 1px solid var(--border-color); }
         .btn-danger { background: #e74c3c; color: #fff; }
         .member-select-wrap { display: flex; flex-wrap: wrap; gap: 6px; flex: 1; }
-        .member-chip { display: flex; align-items: center; gap: 5px; padding: 6px 12px; border-radius: 20px; border: 2px solid transparent; cursor: pointer; font-size: 13px; font-weight: 600; background: #f0f0f0; color: #444; }
+        .member-chip { display: flex; align-items: center; gap: 5px; padding: 6px 12px; border-radius: 20px; border: 2px solid transparent; cursor: pointer; font-size: 12.5px; font-weight: 600; background: var(--bg-subtle); color: var(--text-sub); }
         .member-chip .chip-dot { width: 10px; height: 10px; border-radius: 50%; }
-        .member-chip.active { border-color: currentColor; }
+        .member-chip.active { border-color: currentColor; background: var(--bg-hover); }
         #colorPickerModal .modal-box { width: 320px; }
         .color-presets { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; justify-content: center; }
         .color-preset-btn { width: 36px; height: 36px; border-radius: 50%; border: 3px solid transparent; cursor: pointer; }
-        .color-preset-btn.selected { border-color: #333; transform: scale(1.15); }
-        #holiday-toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #2c3e50; color: #fff; padding: 12px 24px; border-radius: 8px; font-size: 14px; display: none; z-index: 9999; }
+        .color-preset-btn.selected { border-color: var(--text-main); transform: scale(1.15); }
+        #holiday-toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #1e293b; color: #fff; padding: 12px 24px; border-radius: 10px; font-size: 13.5px; font-weight: 600; display: none; z-index: 10002; box-shadow: 0 8px 24px rgba(0,0,0,.3); }
         #loading-overlay { display: none; position: fixed; z-index: 9999; inset: 0; background: rgba(0,0,0,0.6); align-items: center; justify-content: center; color: white; font-size: 18px; font-weight: bold; flex-direction: column; gap: 15px; }
         .spinner { border: 5px solid #f3f3f3; border-top: 5px solid #3498db; border-radius: 50%; width: 46px; height: 46px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        .chat-msg { background: #f1f3f5; border-radius: 10px; padding: 8px 12px; font-size: 13px; position: relative; }
-        .chat-msg .chat-author { font-weight: 700; color: #2c3e50; margin-right: 6px; }
-        .chat-msg .chat-time { font-size: 10.5px; color: #999; margin-right: 18px; float: right; }
-        .chat-msg .chat-text { display: block; margin-top: 2px; color: #333; word-break: break-word; }
-        .chat-msg .chat-del-btn { position: absolute; top: 6px; right: 8px; background: none; border: none; color: #bbb; cursor: pointer; font-size: 14px; padding: 0; line-height: 1; }
+        .chat-msg { background: var(--bg-subtle); border-radius: 10px; padding: 9px 12px; font-size: 13px; position: relative; border: 1px solid var(--border-color); }
+        .chat-msg .chat-author { font-weight: 700; color: var(--primary); margin-right: 6px; }
+        .chat-msg .chat-time { font-size: 10.5px; color: var(--text-muted); margin-right: 18px; float: right; }
+        .chat-msg .chat-text { display: block; margin-top: 3px; color: var(--text-main); word-break: break-word; }
+        .chat-msg .chat-del-btn { position: absolute; top: 6px; right: 8px; background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 14px; padding: 0; line-height: 1; }
         .chat-msg .chat-del-btn:hover { color: #e74c3c; }
-        .chat-empty { text-align: center; color: #999; font-size: 12px; padding: 20px 0; }
+        .chat-empty { text-align: center; color: var(--text-muted); font-size: 12px; padding: 20px 0; }
 
-        /* 모바일 드로어 백드롭 (어두운 배경) */
+        /* 2027 황금연휴 & 연차 플래너 스타일 */
+        .golden-summary-banner {
+            background: linear-gradient(135deg, #1e3a8a, #3b82f6);
+            color: #fff;
+            padding: 16px 18px;
+            border-radius: 12px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .golden-stat-pills { display: flex; gap: 8px; flex-wrap: wrap; }
+        .golden-stat-pill { background: rgba(255,255,255,0.18); padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; }
+        .golden-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+        .golden-card {
+            background: var(--bg-subtle);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            transition: transform .15s, border-color .15s;
+        }
+        .golden-card:hover { transform: translateY(-2px); border-color: var(--primary); }
+        .golden-card-hd { display: flex; justify-content: space-between; align-items: center; gap: 6px; }
+        .golden-badge { background: #ef4444; color: #fff; font-size: 11px; font-weight: 800; padding: 3px 8px; border-radius: 20px; }
+        .golden-badge.vacation { background: #f59e0b; }
+        .golden-title { font-size: 14.5px; font-weight: 800; color: var(--text-main); }
+        .golden-dates { font-size: 12px; color: var(--text-sub); font-weight: 600; }
+        .golden-tip { font-size: 12px; color: var(--primary); background: rgba(74, 144, 226, 0.1); padding: 7px 10px; border-radius: 8px; font-weight: 600; line-height: 1.4; }
+        .golden-actions { display: flex; gap: 6px; margin-top: auto; padding-top: 4px; }
+        .golden-actions button { flex: 1; padding: 7px 10px; font-size: 12px; border-radius: 7px; cursor: pointer; font-weight: 700; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-main); }
+        .golden-actions button.primary-act { background: var(--primary); color: #fff; border-color: var(--primary); }
+
+        /* 모바일 드로어 백드롭 */
         #sidebar-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 1050; }
 
         /* ── 모바일 전용 반응형 미디어 쿼리 (768px 이하) ── */
@@ -235,15 +430,15 @@
             body { padding: 10px 8px; }
             #mobile-nav-bar { display: flex; }
             #app-wrapper { display: block; }
+            .monthly-stats-strip { grid-template-columns: repeat(2, 1fr); }
             
-            /* 사이드바를 슬라이드 드로어로 변환 */
             #sidebar {
                 position: fixed;
                 top: 0;
-                left: -280px;
-                width: 270px;
+                left: -290px;
+                width: 275px;
                 height: 100vh;
-                background: #eef1f5;
+                background: var(--bg-body);
                 z-index: 1100;
                 overflow-y: auto;
                 padding: 16px 12px 60px;
@@ -254,9 +449,8 @@
             #sidebar-backdrop.active { display: block; }
             .sidebar-close-btn { display: block; }
 
-            #calendar-wrap { padding: 12px 10px; border-radius: 10px; }
+            #calendar-wrap { padding: 12px 10px; border-radius: 12px; }
 
-            /* FullCalendar 툴바 줄바꿈 대응 */
             .fc .fc-toolbar {
                 display: flex;
                 flex-direction: column;
@@ -275,7 +469,6 @@
                 font-size: 12px !important;
             }
 
-            /* 모달 폼 반응형 정돈 */
             .modal-box { padding: 18px 14px; border-radius: 12px; }
             .form-row {
                 flex-direction: column;
@@ -288,7 +481,6 @@
             .modal-ft { flex-direction: column-reverse; gap: 8px; }
             .modal-ft .btn { width: 100%; }
 
-            /* 체스 및 오목 게임 상하 레이아웃 */
             .chess-layout, .omok-layout { flex-direction: column; }
             .chess-side, .omok-side { width: 100%; flex: auto; }
             
@@ -339,11 +531,12 @@
             <div id="activity-log-list"><div class="upcoming-empty">불러오는 중...</div></div>
         </div>
         <div class="sidebar-card">
-            <h3>🎉 재미 기능</h3>
+            <h3>🎉 재미 & 스마트 기능</h3>
+            <button class="fun-btn fun-btn-highlight" onclick="openHolidayPlannerModal(); closeSidebarDrawer();">✈️ 2027 황금연휴·연차 플래너</button>
             <button class="fun-btn" onclick="renderLunchCategories(); openModal('lunchModal'); closeSidebarDrawer();">🍽 점심 메뉴 룰렛</button>
             <button class="fun-btn" onclick="openChessGame(); closeSidebarDrawer();">♟ AI와 체스 두기</button>
             <button class="fun-btn" onclick="openOmokGame(); closeSidebarDrawer();">⚫ AI와 오목 두기</button>
-            <button class="fun-btn" style="background:#eaf2fd; border-color:#4a90e2; color:#2c3e50;" onclick="window.open('module2_online_games.html', '_blank', 'width=650,height=750')">🎮 실시간 대결 (체스·오목)</button>
+            <button class="fun-btn" style="background:rgba(74,144,226,0.12); border-color:#4a90e2;" onclick="openOnlineBattleLobby(); closeSidebarDrawer();">🎮 실시간 대결 (체스·오목)</button>
         </div>
         <div class="sidebar-card">
             <h3>💬 팀 메모장</h3>
@@ -355,10 +548,14 @@
             <button id="btn-add-member" onclick="addMember()">+ 멤버 추가</button>
         </div>
         <div class="sidebar-card">
-            <h3>📌 범례</h3>
+            <h3>📌 범례 & 데이터</h3>
             <div class="legend-item"><div class="legend-dot" style="background:#2a6dd9;"></div> 토요일</div>
-            <div class="legend-item"><div class="legend-dot" style="background:#e03030;"></div> 일요일 / 공휴일</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#e03030;"></div> 일요일 / 공휴일 (26·27년)</div>
             <div class="legend-item"><div class="legend-dot" style="background:#ffd700; border:1px solid #ccc;"></div> 오늘</div>
+            <div style="display:flex; gap:6px; margin-top:10px;">
+                <button class="quick-pill-btn" style="flex:1; justify-content:center;" onclick="exportCalendarICS()" title="구글/애플 캘린더용 ICS 파일 저장">📥 ICS 저장</button>
+                <button class="quick-pill-btn" style="flex:1; justify-content:center;" onclick="exportCalendarJSON()" title="JSON 백업 파일 저장">💾 백업</button>
+            </div>
         </div>
         <div class="sync-bar-mini">
             <div id="sync-status-txt">☁️ 실시간 클라우드 연결됨</div>
@@ -381,18 +578,71 @@
                 <button class="dday-banner-edit" onclick="event.stopPropagation(); openDdayBannerConfig()">✎ 설정</button>
             </div>
         </div>
+
+        <!-- 스마트 검색 & 필터 & 2027 바로가기 컨트롤 바 -->
+        <div class="smart-control-bar">
+            <div class="search-input-wrap">
+                <i class="fa-solid fa-magnifying-glass" style="color:var(--text-muted); font-size:13px;"></i>
+                <input type="text" id="eventSearchInput" placeholder="일정 제목·메모·멤버 검색..." oninput="onSearchOrFilterChange()">
+            </div>
+            <div class="filter-chips-wrap" id="categoryFilterChips">
+                <button type="button" class="filter-chip active" data-cat="ALL" onclick="setCategoryFilter('ALL')">전체</button>
+                <button type="button" class="filter-chip" data-cat="업무" onclick="setCategoryFilter('업무')">🏢 업무</button>
+                <button type="button" class="filter-chip" data-cat="휴가" onclick="setCategoryFilter('휴가')">🌴 휴가·연차</button>
+                <button type="button" class="filter-chip" data-cat="모임" onclick="setCategoryFilter('모임')">🍻 회식·모임</button>
+                <button type="button" class="filter-chip" data-cat="기념일" onclick="setCategoryFilter('기념일')">🎂 기념일</button>
+                <button type="button" class="filter-chip" data-cat="중요" onclick="setCategoryFilter('중요')">🔥 중요</button>
+            </div>
+            <div class="quick-action-group">
+                <button type="button" class="quick-pill-btn gold-btn" onclick="openHolidayPlannerModal()">🗓️ 2027 황금연휴 꿀팁</button>
+                <button type="button" class="quick-pill-btn" onclick="jumpToYearMonth('2027-01-01')" title="2027년 1월로 이동">2027년 보기</button>
+                <button type="button" class="quick-pill-btn" id="darkModeToggleBtn" onclick="toggleDarkMode()" title="다크모드 전환">🌙 다크</button>
+            </div>
+        </div>
+
+        <!-- 월간 요약 미니 대시보드 -->
+        <div class="monthly-stats-strip">
+            <div class="stat-mini-card">
+                <span class="stat-mini-label">📅 이달의 팀 일정</span>
+                <span class="stat-mini-val" id="statMonthTotal">0건</span>
+            </div>
+            <div class="stat-mini-card">
+                <span class="stat-mini-label">✅ 완료율</span>
+                <span class="stat-mini-val" id="statMonthDone">0%</span>
+            </div>
+            <div class="stat-mini-card">
+                <span class="stat-mini-label">🎌 이달의 공휴일</span>
+                <span class="stat-mini-val" id="statMonthHolidays" style="color:#e03030;">0일</span>
+            </div>
+            <div class="stat-mini-card">
+                <span class="stat-mini-label">👑 최다 등록 멤버</span>
+                <span class="stat-mini-val" id="statMonthTopMember">-</span>
+            </div>
+        </div>
+
         <div id="calendar"></div>
     </div>
 </div>
 
-<!-- 모달 영역들 -->
+<!-- 일정 등록/수정 모달 -->
 <div id="eventModal" class="modal-overlay">
     <div class="modal-box">
         <div class="modal-hd">
             <h2 id="modal-title-txt">일정 등록</h2>
             <button class="close-x" onclick="closeModal('eventModal')">×</button>
         </div>
-        <div class="form-row"><label>일정명</label><input type="text" id="eventTitle" placeholder="일정 제목"></div>
+        <div class="form-row"><label>일정명</label><input type="text" id="eventTitle" placeholder="일정 제목을 입력하세요"></div>
+        <div class="form-row">
+            <label>카테고리</label>
+            <select id="eventCategory">
+                <option value="일반">📌 일반</option>
+                <option value="업무">🏢 업무</option>
+                <option value="휴가">🌴 휴가·연차</option>
+                <option value="모임">🍻 회식·모임</option>
+                <option value="기념일">🎂 기념일</option>
+                <option value="중요">🔥 마감·중요</option>
+            </select>
+        </div>
         <div class="form-row"><label>작성자</label><div class="member-select-wrap" id="memberChips"></div></div>
         <div class="form-row"><label>시작</label><div class="date-time-group"><input type="date" id="eventStartDate"><input type="time" id="eventStartTime"></div></div>
         <div class="form-row"><label>종료</label><div class="date-time-group"><input type="date" id="eventEndDate"><input type="time" id="eventEndTime"></div></div>
@@ -407,6 +657,7 @@
             </select>
         </div>
         <div class="form-row" id="repeatUntilRow" style="display:none;"><label>반복 종료일</label><input type="date" id="eventRepeatUntil"></div>
+        <div class="form-row"><label>상세 메모</label><textarea id="eventMemo" rows="2" placeholder="장소, 준비물, 상세 메모 (선택)"></textarea></div>
         <div class="form-row"><label></label><label style="display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer;padding:5px 0;"><input type="checkbox" id="eventCompleted" style="width:18px;height:18px;"> ✅ 완료된 일정으로 표시</label></div>
         <div class="form-row"><label>링크(URL)</label><input type="url" id="eventLink" placeholder="https://... (선택)"></div>
         <div class="form-row" id="customColorRow"><label>색상</label><input type="color" id="eventColor" value="#3498db"></div>
@@ -424,6 +675,38 @@
         <div class="color-presets" id="colorPresets"></div>
         <div class="form-row" style="margin-bottom:0;"><label>직접입력</label><input type="color" id="directColorInput" value="#3498db" style="width:100%;"></div>
         <div class="modal-ft"><button class="btn btn-secondary" onclick="closeModal('colorPickerModal')">취소</button><button class="btn btn-primary" onclick="applyMemberColor()">적용</button></div>
+    </div>
+</div>
+
+<!-- 2027 황금연휴 & 연차 플래너 모달 -->
+<div id="holidayPlannerModal" class="modal-overlay">
+    <div class="modal-box" style="width: 780px; max-width: 96vw;">
+        <div class="modal-hd">
+            <h2>✈️ 2027년 황금연휴 & 연차 꿀조합 플래너</h2>
+            <button class="close-x" onclick="closeModal('holidayPlannerModal')">×</button>
+        </div>
+        <div class="golden-summary-banner">
+            <div>
+                <div style="font-size:16px; font-weight:800;">우주항공청 「2027년 월력요항」 공식 반영 완료</div>
+                <div style="font-size:12.5px; opacity:0.9; margin-top:3px;">노동절·제헌절 공휴일 및 7일의 대체공휴일까지 모두 달력에 표시되었어요!</div>
+            </div>
+            <div class="golden-stat-pills">
+                <span class="golden-stat-pill">🎌 관공서 공휴일 72일</span>
+                <span class="golden-stat-pill">🏖️ 주5일제 총 휴일 119일</span>
+                <span class="golden-stat-pill">🔥 3일 이상 연휴 10번</span>
+            </div>
+        </div>
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; gap:8px; flex-wrap:wrap;">
+            <div style="font-size:13px; color:var(--text-sub); font-weight:600;">💡 아래 카드에서 <b>[연차 원클릭 등록]</b>을 누르면 선택한 멤버의 휴가 일정이 캘린더에 바로 추가됩니다.</div>
+            <div style="display:flex; align-items:center; gap:6px;">
+                <span style="font-size:12.5px; font-weight:700;">등록 멤버:</span>
+                <select id="plannerMemberSelect" style="padding:6px 10px; border-radius:7px; border:1px solid var(--border-color); background:var(--bg-subtle); color:var(--text-main); font-size:12.5px;"></select>
+            </div>
+        </div>
+        <div class="golden-grid" id="goldenHolidayGrid"></div>
+        <div class="modal-ft">
+            <button class="btn btn-secondary" onclick="closeModal('holidayPlannerModal')">닫기</button>
+        </div>
     </div>
 </div>
 
@@ -445,22 +728,22 @@
     </div>
 </div>
 
-<!-- AI 체스 / 오목 모달 -->
+<!-- AI 체스 모달 -->
 <div id="chessModal" class="modal-overlay">
     <div class="modal-box chess-modal-box">
         <div class="modal-hd"><h2>♟ AI와 체스 두기</h2><button class="close-x" onclick="closeModal('chessModal')">×</button></div>
         <div class="chess-layout">
             <div class="chess-main">
                 <div class="chess-player-row">
-                    <span class="chess-player"><span class="chess-avatar">🤖</span>AI<span id="chessLevelBadge" class="chess-level-badge">Lv.9</span></span>
+                    <span class="chess-player"><span class="chess-avatar">🤖</span>AI<span id="chessLevelBadge" class="chess-level-badge">Lv.5</span></span>
                     <div class="chess-captured" id="chessCapturedByWhite"></div>
                 </div>
                 <div class="chess-board-wrap"><div class="chess-board" id="chessBoard"></div></div>
                 <div class="chess-player-row">
-                    <span class="chess-player"><span class="chess-avatar">🧑</span>당신</span>
+                    <span class="chess-player"><span class="chess-avatar">🧑</span>당신 (백)</span>
                     <div class="chess-captured" id="chessCapturedByBlack"></div>
                 </div>
-                <div id="chessStatus" class="chess-status-banner">당신 차례입니다</div>
+                <div id="chessStatus" class="chess-status-banner">당신 차례입니다 (기물을 클릭해 이동하세요)</div>
             </div>
             <div class="chess-side">
                 <div class="chess-controls">
@@ -469,17 +752,18 @@
                         <option value="2">2 - 왕초보</option>
                         <option value="3">3 - 초급</option>
                         <option value="4">4 - 초중급</option>
-                        <option value="5">5 - 중급</option>
+                        <option value="5" selected>5 - 중급</option>
                         <option value="6">6 - 중급+</option>
                         <option value="7">7 - 중상급</option>
                         <option value="8">8 - 상급</option>
-                        <option value="9" selected>9 - 상급+</option>
+                        <option value="9">9 - 상급+</option>
                         <option value="10">10 - 숙련자</option>
                     </select>
                     <button class="btn btn-secondary" style="padding:8px 12px; font-size:12.5px;" onclick="startNewChessGame()">새 게임</button>
                 </div>
+                <button class="btn btn-secondary" style="width:100%; padding:8px; font-size:12px;" onclick="undoChessMove()">↩ 한 수 무르기</button>
                 <div class="chess-movelist-wrap">
-                    <div class="chess-movelist-title">기보</div>
+                    <div class="chess-movelist-title">기보 (Move History)</div>
                     <div id="chessMoveList" class="chess-movelist"></div>
                 </div>
             </div>
@@ -487,6 +771,7 @@
     </div>
 </div>
 
+<!-- AI 오목 모달 -->
 <div id="omokModal" class="modal-overlay">
     <div class="modal-box omok-modal-box">
         <div class="modal-hd"><h2>⚫ AI와 오목 두기</h2><button class="close-x" onclick="closeModal('omokModal')">×</button></div>
@@ -494,6 +779,7 @@
             <div class="omok-main">
                 <div class="omok-player-row">
                     <span class="chess-player"><span class="chess-avatar">🧑</span>당신(흑)</span>
+                    <span id="omokMoveCount" style="font-size:12px; color:var(--text-muted); font-weight:600;">총 0수</span>
                 </div>
                 <div class="omok-board-wrap"><div class="omok-board" id="omokBoard"></div></div>
                 <div class="omok-player-row">
@@ -511,9 +797,36 @@
                     </select>
                     <button class="btn btn-secondary" style="padding:8px 12px; font-size:12.5px;" onclick="startNewOmokGame()">새 게임</button>
                 </div>
-                <div style="font-size:11.5px; color:#999; line-height:1.6;">가로·세로·대각선 중 하나로 5개를 먼저 이으면 승리해요.</div>
+                <button class="btn btn-secondary" style="width:100%; padding:8px; font-size:12px;" onclick="undoOmokMove()">↩ 한 수 무르기</button>
+                <div style="font-size:11.5px; color:var(--text-muted); line-height:1.6;">가로·세로·대각선 중 하나로 5개를 먼저 이으면 승리해요. AI의 열린 3·4 공격을 수비하며 빈틈을 노려보세요!</div>
             </div>
         </div>
+    </div>
+</div>
+
+<!-- 실시간 온라인 대결 로비 모달 (외부 파일 링크를 대체하는 내장 멀티플레이 모듈) -->
+<div id="onlineMatchModal" class="modal-overlay">
+    <div class="modal-box" style="width:460px;">
+        <div class="modal-hd">
+            <h2>🎮 팀 실시간 대결 로비 (Firebase 연동)</h2>
+            <button class="close-x" onclick="closeModal('onlineMatchModal')">×</button>
+        </div>
+        <div style="background:var(--bg-subtle); border:1px solid var(--border-color); border-radius:12px; padding:14px; margin-bottom:14px;">
+            <div style="font-size:13px; font-weight:700; margin-bottom:8px;">방 코드로 팀원과 실시간 오목 대결하기</div>
+            <div style="display:flex; gap:8px; margin-bottom:8px;">
+                <input type="text" id="onlineRoomCodeInput" placeholder="방 코드 (예: TEAM27)" value="TEAM27" style="flex:1; padding:9px 11px; border:1px solid var(--border-color); border-radius:8px; background:var(--bg-card); color:var(--text-main); font-weight:700;">
+                <select id="onlineRoleSelect" style="padding:9px; border:1px solid var(--border-color); border-radius:8px; background:var(--bg-card); color:var(--text-main); font-weight:600;">
+                    <option value="black">⚫ 흑돌 (선공)</option>
+                    <option value="white">⚪ 백돌 (후공)</option>
+                </select>
+            </div>
+            <div style="display:flex; gap:8px;">
+                <button class="btn btn-primary" style="flex:1;" onclick="joinOnlineOmokRoom()">방 입장 / 동기화 시작</button>
+                <button class="btn btn-secondary" onclick="resetOnlineOmokRoom()">판 초기화</button>
+            </div>
+            <div id="onlineRoomStatus" style="font-size:12px; color:var(--primary); font-weight:600; margin-top:8px;">방 코드를 입력하고 입장하면 실시간으로 바둑판이 공유됩니다.</div>
+        </div>
+        <div class="omok-board-wrap"><div class="omok-board" id="onlineOmokBoard"></div></div>
     </div>
 </div>
 
@@ -543,9 +856,22 @@
         <div class="modal-hd"><h2>💬 팀 메모장</h2><button class="close-x" onclick="closeModal('teamChatModal')">×</button></div>
         <div id="chatMessages" style="flex:1; overflow-y:auto; max-height:320px; margin-bottom:12px; display:flex; flex-direction:column; gap:8px;"><div class="chat-empty">불러오는 중...</div></div>
         <div style="display:flex; gap:6px;">
-            <select id="chatAuthorSelect" style="width:90px; padding:9px; border:1px solid #ddd; border-radius:7px; font-size:12.5px;"></select>
-            <input type="text" id="chatTextInput" placeholder="메모 남기기..." style="flex:1; padding:9px; border:1px solid #ddd; border-radius:7px; font-size:13px;" onkeydown="if(event.key==='Enter') sendTeamMessage()">
+            <select id="chatAuthorSelect" style="width:90px; padding:9px; border:1px solid var(--border-color); border-radius:7px; font-size:12.5px; background:var(--bg-subtle); color:var(--text-main);"></select>
+            <input type="text" id="chatTextInput" placeholder="메모 남기기..." style="flex:1; padding:9px; border:1px solid var(--border-color); border-radius:7px; font-size:13px; background:var(--bg-subtle); color:var(--text-main);" onkeydown="if(event.key==='Enter') sendTeamMessage()">
             <button class="btn btn-primary" style="padding:9px 14px;" onclick="sendTeamMessage()">전송</button>
+        </div>
+    </div>
+</div>
+
+<!-- 커스텀 확인 모달 (Canvas에서 차단되는 confirm/alert 대체) -->
+<div id="customConfirmModal" class="modal-overlay" style="z-index: 9500;">
+    <div class="modal-box" style="width: 360px; text-align: center;">
+        <div style="font-size: 32px; margin-bottom: 8px;" id="confirmModalIcon">💡</div>
+        <h3 id="confirmModalTitle" style="margin: 0 0 8px; font-size: 16px;">확인</h3>
+        <p id="confirmModalMsg" style="font-size: 13.5px; color: var(--text-sub); line-height: 1.5; margin: 0 0 18px; white-space: pre-line;"></p>
+        <div style="display: flex; gap: 8px; justify-content: center;" id="confirmModalBtnWrap">
+            <button class="btn btn-secondary" id="confirmModalCancelBtn" style="flex:1;">취소</button>
+            <button class="btn btn-primary" id="confirmModalOkBtn" style="flex:1;">확인</button>
         </div>
     </div>
 </div>
@@ -554,6 +880,48 @@
 let calendar;
 let currentEditingEvent = null;
 let colorPickerTargetIdx = null;
+let currentCategoryFilter = 'ALL';
+let currentSearchKeyword = '';
+
+// ── 안전한 스토리지 헬퍼 (Canvas 샌드박스 완벽 호환) ──
+function safeGetStorage(key, fallbackStr, isSession = false) {
+    try {
+        const store = isSession ? sessionStorage : localStorage;
+        const val = store.getItem(key);
+        return val !== null ? val : fallbackStr;
+    } catch (_) {
+        return fallbackStr;
+    }
+}
+function safeSetStorage(key, valStr, isSession = false) {
+    try {
+        const store = isSession ? sessionStorage : localStorage;
+        store.setItem(key, valStr);
+    } catch (_) {}
+}
+
+// ── 커스텀 확인/알림 모달 ──
+function openConfirmDialog({ title = '확인', message = '', okText = '확인', cancelText = '취소', onOk = null, onCancel = null, danger = false }) {
+    const modal = document.getElementById('customConfirmModal');
+    document.getElementById('confirmModalTitle').textContent = title;
+    document.getElementById('confirmModalMsg').textContent = message;
+    const okBtn = document.getElementById('confirmModalOkBtn');
+    const cancelBtn = document.getElementById('confirmModalCancelBtn');
+    okBtn.textContent = okText;
+    okBtn.className = danger ? 'btn btn-danger' : 'btn btn-primary';
+    cancelBtn.textContent = cancelText;
+    cancelBtn.style.display = cancelText ? 'inline-block' : 'none';
+
+    okBtn.onclick = () => {
+        closeModal('customConfirmModal');
+        if (onOk) onOk();
+    };
+    cancelBtn.onclick = () => {
+        closeModal('customConfirmModal');
+        if (onCancel) onCancel();
+    };
+    openModal('customConfirmModal');
+}
 
 // ── 모바일 사이드바 드로어 제어 ──
 function openSidebarDrawer() {
@@ -570,6 +938,21 @@ function closeSidebarDrawer() {
     if (bd) bd.classList.remove('active');
 }
 
+// ── 다크 모드 토글 ──
+function initDarkMode() {
+    const isDark = safeGetStorage('cal_dark_mode_c1', 'false') === 'true';
+    document.body.classList.toggle('dark-mode', isDark);
+    const btn = document.getElementById('darkModeToggleBtn');
+    if (btn) btn.textContent = isDark ? '☀️ 라이트' : '🌙 다크';
+}
+function toggleDarkMode() {
+    const isDark = !document.body.classList.contains('dark-mode');
+    document.body.classList.toggle('dark-mode', isDark);
+    safeSetStorage('cal_dark_mode_c1', String(isDark));
+    const btn = document.getElementById('darkModeToggleBtn');
+    if (btn) btn.textContent = isDark ? '☀️ 라이트' : '🌙 다크';
+}
+
 // ── Firebase 초기화 (Realtime Database 사용) ──
 let db = null;
 let firebaseReady = false;
@@ -583,11 +966,13 @@ try {
         messagingSenderId: "280076043458",
         appId: "1:280076043458:web:32714ac245e301e534275b"
     };
-    if (!firebase.apps.length) {
-        firebase.initializeApp(firebaseConfig);
+    if (typeof firebase !== 'undefined') {
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        db = firebase.database();
+        firebaseReady = true;
     }
-    db = firebase.database();
-    firebaseReady = true;
 } catch (e) {
     console.error('Firebase 초기화 실패:', e);
     firebaseReady = false;
@@ -601,7 +986,7 @@ function checkGatePassword() {
     const inputEl = document.getElementById('gatePwInput');
     const val = inputEl ? inputEl.value.trim() : '';
     if (val === GATE_PASSWORD) {
-        sessionStorage.setItem(GATE_SESSION_KEY, 'true');
+        safeSetStorage(GATE_SESSION_KEY, 'true', true);
         unlockApp();
     } else {
         const errorEl = document.getElementById('gateError');
@@ -628,7 +1013,8 @@ function unlockApp() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    if (sessionStorage.getItem(GATE_SESSION_KEY) === 'true') {
+    initDarkMode();
+    if (safeGetStorage(GATE_SESSION_KEY, 'false', true) === 'true') {
         unlockApp();
     } else {
         const inputEl = document.getElementById('gatePwInput');
@@ -636,26 +1022,26 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-let members = JSON.parse(localStorage.getItem('cal_members_c1') || 'null') || [
+let members = JSON.parse(safeGetStorage('cal_members_c1', 'null')) || [
     { name: '멤버1', color: '#3498db' },
     { name: '멤버2', color: '#e74c3c' },
 ];
 
 const COLOR_PRESETS = ['#e74c3c','#e67e22','#f1c40f','#2ecc71','#1abc9c','#3498db','#9b59b6','#e91e63','#00bcd4','#4caf50','#ff5722','#795548','#607d8b','#2c3e50','#34495e'];
 
-let hiddenMembers = new Set(JSON.parse(localStorage.getItem('cal_hidden_members_c1') || '[]'));
+let hiddenMembers = new Set(JSON.parse(safeGetStorage('cal_hidden_members_c1', '[]')));
 let lastRawEvents = [];
 let teamMessages = [];
 
 function toggleMemberVisibility(i) {
     if (hiddenMembers.has(i)) hiddenMembers.delete(i); else hiddenMembers.add(i);
-    localStorage.setItem('cal_hidden_members_c1', JSON.stringify([...hiddenMembers]));
+    safeSetStorage('cal_hidden_members_c1', JSON.stringify([...hiddenMembers]));
     renderMembers();
     refreshCalendarEvents(lastRawEvents);
 }
 
 // ── 새 일정 자동 알림 ──
-let notifEnabled = localStorage.getItem('notif_enabled_c1') === 'true';
+let notifEnabled = safeGetStorage('notif_enabled_c1', 'false') === 'true';
 let knownEventIds = new Set();
 
 function playChime() {
@@ -674,9 +1060,10 @@ function playChime() {
 
 function showNotifToast(msg) {
     const t = document.getElementById('notif-toast');
+    if (!t) return;
     t.textContent = msg;
     t.style.display = 'block';
-    setTimeout(() => { t.style.display = 'none'; }, 4000);
+    setTimeout(() => { t.style.display = 'none'; }, 3600);
 }
 
 function notifyNewEvent(ev) {
@@ -694,20 +1081,210 @@ function updateNotifBtn() {
 
 function toggleNotif() {
     notifEnabled = !notifEnabled;
-    localStorage.setItem('notif_enabled_c1', String(notifEnabled));
+    safeSetStorage('notif_enabled_c1', String(notifEnabled));
     updateNotifBtn();
     if (notifEnabled) showNotifToast('🔔 새 일정 알림이 켜졌어요');
     else showNotifToast('🔕 알림이 꺼졌어요');
 }
 
+// ── 2026년 & 2027년 공식 공휴일 및 대체공휴일 완벽 반영 (우주항공청 월력요항 기준) ──
 const HOLIDAY_MAP = {
-    '2026-01-01': '신정', '2026-02-16': '설날 전날', '2026-02-17': '설날', '2026-02-18': '설날 다음날', '2026-02-19': '설날 연휴', 
-    '2026-03-01': '삼일절', '2026-03-02': '삼일절 대체공휴일', '2026-05-01': '노동절', '2026-05-05': '어린이날', 
-    '2026-05-24': '부처님오신날', '2026-05-25': '부처님오신날 대체공휴일', '2026-06-03': '지방선거일(임시공휴일)', 
-    '2026-06-06': '현충일', '2026-07-17': '제헌절', '2026-08-15': '광복절', '2026-08-17': '광복절 대체공휴일', 
-    '2026-09-24': '추석 전날', '2026-09-25': '추석', '2026-09-26': '추석 다음날', '2026-10-03': '개천절', 
-    '2026-10-05': '개천절 대체공휴일', '2026-10-09': '한글날', '2026-12-25': '크리스마스'
+    // 2026년 공휴일
+    '2026-01-01': '신정',
+    '2026-02-16': '설날 전날',
+    '2026-02-17': '설날',
+    '2026-02-18': '설날 다음날',
+    '2026-03-01': '삼일절',
+    '2026-03-02': '삼일절 대체공휴일',
+    '2026-05-01': '노동절',
+    '2026-05-05': '어린이날',
+    '2026-05-24': '부처님오신날',
+    '2026-05-25': '부처님오신날 대체공휴일',
+    '2026-06-03': '지방선거일(임시공휴일)',
+    '2026-06-06': '현충일',
+    '2026-07-17': '제헌절',
+    '2026-08-15': '광복절',
+    '2026-08-17': '광복절 대체공휴일',
+    '2026-09-24': '추석 전날',
+    '2026-09-25': '추석',
+    '2026-09-26': '추석 다음날',
+    '2026-10-03': '개천절',
+    '2026-10-05': '개천절 대체공휴일',
+    '2026-10-09': '한글날',
+    '2026-12-25': '크리스마스',
+
+    // 2027년 공식 공휴일 24일 (대체공휴일 7일 + 노동절·제헌절 포함)
+    '2027-01-01': '신정',
+    '2027-02-06': '설날 전날',
+    '2027-02-07': '설날',
+    '2027-02-08': '설날 다음날',
+    '2027-02-09': '설날 대체공휴일',
+    '2027-03-01': '삼일절',
+    '2027-05-01': '노동절',
+    '2027-05-03': '노동절 대체공휴일',
+    '2027-05-05': '어린이날',
+    '2027-05-13': '부처님오신날',
+    '2027-06-06': '현충일',
+    '2027-07-17': '제헌절',
+    '2027-07-19': '제헌절 대체공휴일',
+    '2027-08-15': '광복절',
+    '2027-08-16': '광복절 대체공휴일',
+    '2027-09-14': '추석 전날',
+    '2027-09-15': '추석',
+    '2027-09-16': '추석 다음날',
+    '2027-10-03': '개천절',
+    '2027-10-04': '개천절 대체공휴일',
+    '2027-10-09': '한글날',
+    '2027-10-11': '한글날 대체공휴일',
+    '2027-12-25': '크리스마스',
+    '2027-12-27': '크리스마스 대체공휴일'
 };
+
+// ── 2027년 황금연휴 & 연차 꿀조합 추천 데이터 ──
+const GOLDEN_HOLIDAYS_2027 = [
+    {
+        title: '🌅 신정 3일 연휴',
+        period: '2027.01.01(금) ~ 01.03(일)',
+        daysText: '기본 3일 연휴',
+        tip: '연차 없이 금·토·일 3일 연속 휴식! 12/31(목) 연차 추가 시 4일 연휴',
+        jumpDate: '2027-01-01',
+        leaveDates: []
+    },
+    {
+        title: '🧧 설날 황금연휴 (대체공휴일 포함)',
+        period: '2027.02.06(토) ~ 02.09(화)',
+        daysText: '기본 4일 · 연차 3일 시 9일',
+        tip: '2/10(수)~2/12(금) 연차 3일 사용 시 주말까지 최대 9일 연속 황금연휴!',
+        jumpDate: '2027-02-06',
+        leaveDates: ['2027-02-10', '2027-02-11', '2027-02-12']
+    },
+    {
+        title: '🇰🇷 삼일절 3일 연휴',
+        period: '2027.02.27(토) ~ 03.01(월)',
+        daysText: '기본 3일 연휴',
+        tip: '삼일절이 월요일이라 연차 없이도 깔끔한 토·일·월 3일 연휴!',
+        jumpDate: '2027-03-01',
+        leaveDates: []
+    },
+    {
+        title: '🌱 5월 노동절·어린이날 징검다리',
+        period: '2027.05.01(토) ~ 05.05(수)',
+        daysText: '연차 1일로 5일 연휴!',
+        tip: '5/3(월) 노동절 대체공휴일! 5/4(화) 하루만 연차 쓰면 5일 연속 꿀휴가!',
+        jumpDate: '2027-05-01',
+        leaveDates: ['2027-05-04']
+    },
+    {
+        title: '🪷 부처님오신날 징검다리 연휴',
+        period: '2027.05.13(목) ~ 05.16(일)',
+        daysText: '연차 1일로 4일 연휴!',
+        tip: '5/13(목) 부처님오신날 다음 날인 5/14(금) 연차 1일 사용 시 목~일 4일 연휴!',
+        jumpDate: '2027-05-13',
+        leaveDates: ['2027-05-14']
+    },
+    {
+        title: '⚖️ 제헌절 대체공휴일 3일 연휴',
+        period: '2027.07.17(토) ~ 07.19(월)',
+        daysText: '기본 3일 연휴',
+        tip: '7/17(토) 제헌절이 토요일과 겹쳐 7/19(월) 대체공휴일! 여름휴가 전초전 3일 연휴',
+        jumpDate: '2027-07-17',
+        leaveDates: []
+    },
+    {
+        title: '🌊 광복절 대체공휴일 3일 연휴',
+        period: '2027.08.14(토) ~ 08.16(월)',
+        daysText: '기본 3일 연휴',
+        tip: '8/15(일) 광복절 대체공휴일로 8/16(월) 휴무! 한여름 3일 꿀연휴',
+        jumpDate: '2027-08-15',
+        leaveDates: []
+    },
+    {
+        title: '🌕 추석 슈퍼 황금연휴',
+        period: '2027.09.11(토) ~ 09.19(일)',
+        daysText: '연차 2일로 9일 대연휴!',
+        tip: '추석 연휴(화~목) 앞뒤인 9/13(월), 9/17(금) 연차 2일이면 무려 9일 연속 휴식!',
+        jumpDate: '2027-09-14',
+        leaveDates: ['2027-09-13', '2027-09-17']
+    },
+    {
+        title: '🍁 10월 개천절·한글날 더블 연휴',
+        period: '2027.10.02(토) ~ 10.11(월)',
+        daysText: '3일 연휴 2연속 · 연차 4일 시 10일',
+        tip: '개천절 대체(10/4 월) + 한글날 대체(10/11 월)! 사이 평일(10/5~8) 연차 시 10일 연휴!',
+        jumpDate: '2027-10-03',
+        leaveDates: ['2027-10-05', '2027-10-06', '2027-10-07', '2027-10-08']
+    },
+    {
+        title: '🎄 크리스마스 대체공휴일 연휴',
+        period: '2027.12.25(토) ~ 12.27(월)',
+        daysText: '기본 3일 연휴',
+        tip: '성탄절이 토요일이라 12/27(월) 대체공휴일 지정! 따뜻한 연말 3일 연휴',
+        jumpDate: '2027-12-25',
+        leaveDates: []
+    }
+];
+
+function openHolidayPlannerModal() {
+    const sel = document.getElementById('plannerMemberSelect');
+    if (sel) {
+        sel.innerHTML = members.map((m, idx) => `<option value="${idx}">${escHtml(m.name)}</option>`).join('');
+    }
+    const grid = document.getElementById('goldenHolidayGrid');
+    if (grid) {
+        grid.innerHTML = GOLDEN_HOLIDAYS_2027.map((item, idx) => {
+            const hasLeave = item.leaveDates && item.leaveDates.length > 0;
+            return `
+            <div class="golden-card">
+                <div class="golden-card-hd">
+                    <span class="golden-title">${escHtml(item.title)}</span>
+                    <span class="golden-badge ${hasLeave ? 'vacation' : ''}">${escHtml(item.daysText)}</span>
+                </div>
+                <div class="golden-dates">📅 ${escHtml(item.period)}</div>
+                <div class="golden-tip">💡 ${escHtml(item.tip)}</div>
+                <div class="golden-actions">
+                    <button type="button" onclick="jumpToYearMonth('${item.jumpDate}'); closeModal('holidayPlannerModal');">달력 이동</button>
+                    ${hasLeave ? `<button type="button" class="primary-act" onclick="applyGoldenLeave(${idx})">연차 원클릭 등록 (${item.leaveDates.length}일)</button>` : ''}
+                </div>
+            </div>`;
+        }).join('');
+    }
+    openModal('holidayPlannerModal');
+}
+
+function applyGoldenLeave(goldenIdx) {
+    const item = GOLDEN_HOLIDAYS_2027[goldenIdx];
+    if (!item || !item.leaveDates || item.leaveDates.length === 0) return;
+    const sel = document.getElementById('plannerMemberSelect');
+    const memberIdx = sel && sel.value !== '' ? parseInt(sel.value, 10) : 0;
+    const member = members[memberIdx] || { name: '팀원', color: '#3498db' };
+
+    const newLeaveEvents = item.leaveDates.map((dStr, i) => ({
+        id: `${Date.now()}_leave_${i}`,
+        title: `[연차] ${member.name} · ${item.title.replace(/^[^\s]+\s/, '')}`,
+        start: dStr,
+        end: getNextDayStr(dStr),
+        allDay: true,
+        backgroundColor: member.color,
+        borderColor: member.color,
+        memberIdx: memberIdx,
+        category: '휴가',
+        memo: `${item.period} 황금연휴 연차 추천일 자동 등록`,
+        completed: false,
+        link: null,
+        groupId: null
+    }));
+
+    syncActionToCloud('ADD_MULTI', newLeaveEvents);
+    jumpToYearMonth(item.jumpDate);
+    closeModal('holidayPlannerModal');
+    showNotifToast(`🌴 ${member.name}님의 황금연휴 연차 ${item.leaveDates.length}일이 등록되었어요!`);
+}
+
+function jumpToYearMonth(dateStr) {
+    if (calendar && dateStr) {
+        calendar.gotoDate(dateStr);
+    }
+}
 
 function fmtDate(d) {
     if (!d) return '';
@@ -720,52 +1297,59 @@ function fmtTime(d) {
     return `${h}:${m}`;
 }
 
-function makeHolidayEvent(dateStr, name) { return { id: 'hol_' + dateStr, title: name, start: dateStr, allDay: true, classNames: ['holiday-event'], editable: false, display: 'list-item' }; }
-
-function isEventPastDue(e, todayDate) {
-    if (!e || e.completed) return false;
-    const endStr = (e.end || e.start || '').split('T')[0];
-    if (!endStr) return false;
-    let endDate = new Date(endStr + 'T00:00:00');
-    if (e.allDay) endDate.setDate(endDate.getDate() - 1);
-    return endDate < todayDate;
-}
-
-function autoCompletePastEvents(events) {
-    const todayDate = new Date(fmtDate(new Date()) + 'T00:00:00');
-    let changed = false;
-    const updated = events.map(e => {
-        if (isEventPastDue(e, todayDate)) { changed = true; return { ...e, completed: true }; }
-        return e;
-    });
-    return { updated, changed };
+function makeHolidayEvent(dateStr, name) {
+    return {
+        id: 'hol_' + dateStr,
+        title: '🎌 ' + name,
+        start: dateStr,
+        allDay: true,
+        classNames: ['holiday-event'],
+        editable: false
+    };
 }
 
 function saveMembers() { 
-    localStorage.setItem('cal_members_c1', JSON.stringify(members)); 
+    safeSetStorage('cal_members_c1', JSON.stringify(members)); 
     if (firebaseReady) db.ref('calendarShared/members').set(members);
 }
 
 function renderMembers() {
-    const list = document.getElementById('member-list'); list.innerHTML = '';
+    const list = document.getElementById('member-list');
+    if (!list) return;
+    list.innerHTML = '';
     members.forEach((m, i) => {
         const row = document.createElement('div'); row.className = 'member-row' + (hiddenMembers.has(i) ? ' member-hidden' : '');
-        row.innerHTML = `<div class="member-dot" style="background:${m.color};" onclick="openColorPicker(${i})"></div><input class="member-name" value="${escHtml(m.name)}" onchange="members[${i}].name=this.value; saveMembers(); renderEventModal();" onclick="this.focus()"><button class="member-eye-btn" onclick="toggleMemberVisibility(${i})" title="달력에 표시/숨김">${hiddenMembers.has(i) ? '🙈' : '👁️'}</button><button class="member-color-btn" style="background:${m.color};" onclick="openColorPicker(${i})">🎨</button><button class="member-del" onclick="deleteMember(${i})">×</button>`;
+        row.innerHTML = `<div class="member-dot" style="background:${m.color};" onclick="openColorPicker(${i})"></div><input class="member-name" value="${escHtml(m.name)}" onchange="members[${i}].name=this.value; saveMembers(); renderEventModal(); updateMonthlyStats();" onclick="this.focus()"><button class="member-eye-btn" onclick="toggleMemberVisibility(${i})" title="달력에 표시/숨김">${hiddenMembers.has(i) ? '🙈' : '👁️'}</button><button class="member-color-btn" style="background:${m.color};" onclick="openColorPicker(${i})">🎨</button><button class="member-del" onclick="deleteMember(${i})">×</button>`;
         list.appendChild(row);
     });
 }
 
-function addMember() { members.push({ name: '새 멤버', color: COLOR_PRESETS[members.length % COLOR_PRESETS.length] }); saveMembers(); renderMembers(); }
-function deleteMember(i) {
-    if (!confirm(`"${members[i].name}" 삭제하시겠습니까?`)) return;
-    members.splice(i, 1);
-    const newHidden = new Set();
-    hiddenMembers.forEach(idx => { if (idx < i) newHidden.add(idx); else if (idx > i) newHidden.add(idx - 1); });
-    hiddenMembers = newHidden;
-    localStorage.setItem('cal_hidden_members_c1', JSON.stringify([...hiddenMembers]));
-    saveMembers(); renderMembers();
+function addMember() {
+    members.push({ name: '새 멤버', color: COLOR_PRESETS[members.length % COLOR_PRESETS.length] });
+    saveMembers();
+    renderMembers();
+    showNotifToast('👥 새 멤버가 추가되었어요!');
 }
-function escHtml(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function deleteMember(i) {
+    openConfirmDialog({
+        title: '멤버 삭제',
+        message: `"${members[i].name}" 멤버를 삭제하시겠습니까?`,
+        okText: '삭제',
+        danger: true,
+        onOk: () => {
+            members.splice(i, 1);
+            const newHidden = new Set();
+            hiddenMembers.forEach(idx => { if (idx < i) newHidden.add(idx); else if (idx > i) newHidden.add(idx - 1); });
+            hiddenMembers = newHidden;
+            safeSetStorage('cal_hidden_members_c1', JSON.stringify([...hiddenMembers]));
+            saveMembers();
+            renderMembers();
+            refreshCalendarEvents(lastRawEvents);
+        }
+    });
+}
+function escHtml(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
 function openColorPicker(memberIdx) {
     colorPickerTargetIdx = memberIdx; document.getElementById('colorPickerTitle').textContent = `"${members[memberIdx].name}" 색상`; document.getElementById('directColorInput').value = members[memberIdx].color;
@@ -777,11 +1361,20 @@ function openColorPicker(memberIdx) {
     });
     openModal('colorPickerModal');
 }
-function applyMemberColor() { if (colorPickerTargetIdx === null) return; members[colorPickerTargetIdx].color = document.getElementById('directColorInput').value; saveMembers(); renderMembers(); closeModal('colorPickerModal'); }
+function applyMemberColor() {
+    if (colorPickerTargetIdx === null) return;
+    members[colorPickerTargetIdx].color = document.getElementById('directColorInput').value;
+    saveMembers();
+    renderMembers();
+    refreshCalendarEvents(lastRawEvents);
+    closeModal('colorPickerModal');
+}
 
 let selectedMemberIdx = null;
 function renderEventModal() {
-    const wrap = document.getElementById('memberChips'); wrap.innerHTML = '';
+    const wrap = document.getElementById('memberChips');
+    if (!wrap) return;
+    wrap.innerHTML = '';
     const none = document.createElement('div'); none.className = 'member-chip' + (selectedMemberIdx === null ? ' active' : ''); none.style.color = '#888'; none.innerHTML = '없음';
     none.onclick = () => { selectedMemberIdx = null; renderEventModal(); document.getElementById('eventColor').value = '#3498db'; }; wrap.appendChild(none);
     members.forEach((m, i) => {
@@ -790,14 +1383,29 @@ function renderEventModal() {
     });
 }
 
-function openModal(id) { document.getElementById(id).classList.add('open'); }
-function closeModal(id) { document.getElementById(id).classList.remove('open'); if (id === 'eventModal') { calendar && calendar.unselect(); } }
-function toggleTimeInputs() { const allDay = document.getElementById('eventAllDay').checked; document.getElementById('eventStartTime').disabled = allDay; document.getElementById('eventEndTime').disabled = allDay; document.getElementById('eventStartTime').style.opacity = allDay ? '0.5' : '1'; document.getElementById('eventEndTime').style.opacity = allDay ? '0.5' : '1'; }
+function openModal(id) {
+    const el = document.getElementById(id);
+    if (el) el.classList.add('open');
+}
+function closeModal(id) {
+    const el = document.getElementById(id);
+    if (el) el.classList.remove('open');
+    if (id === 'eventModal' && calendar) { calendar.unselect(); }
+}
+function toggleTimeInputs() {
+    const allDay = document.getElementById('eventAllDay').checked;
+    document.getElementById('eventStartTime').disabled = allDay;
+    document.getElementById('eventEndTime').disabled = allDay;
+    document.getElementById('eventStartTime').style.opacity = allDay ? '0.5' : '1';
+    document.getElementById('eventEndTime').style.opacity = allDay ? '0.5' : '1';
+}
 
 function openNewEventModal(dateStr) {
     currentEditingEvent = null; selectedMemberIdx = null; renderEventModal();
     document.getElementById('modal-title-txt').textContent = '일정 등록';
     document.getElementById('eventTitle').value = '';
+    document.getElementById('eventCategory').value = '일반';
+    document.getElementById('eventMemo').value = '';
     document.getElementById('eventAllDay').checked = true;
     document.getElementById('eventColor').value = '#3498db';
     document.getElementById('eventCompleted').checked = false;
@@ -816,20 +1424,46 @@ function openNewEventModal(dateStr) {
 
 function openAddModalForToday() { openNewEventModal(fmtDate(new Date())); }
 
+const CATEGORY_EMOJI = {
+    '일반': '',
+    '업무': '🏢',
+    '휴가': '🌴',
+    '모임': '🍻',
+    '기념일': '🎂',
+    '중요': '🔥'
+};
+
 let activeTooltipEl = null;
 function showEventTooltip(targetEl, event) {
     hideEventTooltip();
     const memberIdx = event.extendedProps.memberIdx;
     const memberName = (memberIdx !== null && memberIdx !== undefined && members[memberIdx]) ? members[memberIdx].name + ' · ' : '';
+    const cat = event.extendedProps.category && event.extendedProps.category !== '일반' ? `[${event.extendedProps.category}] ` : '';
+    const memo = event.extendedProps.memo ? `\n📝 ${event.extendedProps.memo}` : '';
     activeTooltipEl = document.createElement('div');
     activeTooltipEl.className = 'event-tooltip';
-    activeTooltipEl.textContent = memberName + event.title;
+    activeTooltipEl.textContent = memberName + cat + event.title + memo;
     document.body.appendChild(activeTooltipEl);
     const rect = targetEl.getBoundingClientRect();
     activeTooltipEl.style.left = Math.max(4, rect.left) + 'px';
     activeTooltipEl.style.top = (rect.bottom + window.scrollY + 5) + 'px';
 }
 function hideEventTooltip() { if (activeTooltipEl) { activeTooltipEl.remove(); activeTooltipEl = null; } }
+
+// ── 검색 및 카테고리 필터 ──
+function setCategoryFilter(cat) {
+    currentCategoryFilter = cat;
+    document.querySelectorAll('#categoryFilterChips .filter-chip').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.cat === cat);
+    });
+    refreshCalendarEvents(lastRawEvents);
+}
+
+function onSearchOrFilterChange() {
+    const input = document.getElementById('eventSearchInput');
+    currentSearchKeyword = input ? input.value.trim().toLowerCase() : '';
+    refreshCalendarEvents(lastRawEvents);
+}
 
 // ── 점심 메뉴 룰렛 ──
 const LUNCH_FOODS = {
@@ -841,7 +1475,7 @@ const LUNCH_FOODS = {
 };
 function renderLunchCategories() {
     const row = document.getElementById('lunchCatRow');
-    if (row.childElementCount) return;
+    if (!row || row.childElementCount) return;
     const CAT_ICONS = { '한식': '🍚', '분식': '🍢', '중식': '🥢', '일식': '🍣', '양식': '🍝' };
     Object.keys(LUNCH_FOODS).forEach(cat => {
         const label = document.createElement('label');
@@ -890,7 +1524,7 @@ let ddayBanner = null;
 let activityLog = [];
 const ACTIVITY_LABELS = { ADD: '등록', ADD_MULTI: '등록', UPDATE: '수정', DELETE: '삭제', DELETE_GROUP: '삭제' };
 function makeActivityEntry(action, eventData) {
-    let user = '알 수 없음';
+    let user = '팀원';
     let title = '(제목 없음)';
     if (Array.isArray(eventData) && eventData.length > 0) {
         title = eventData.length > 1 ? `${eventData[0].title} 외 ${eventData.length - 1}건` : eventData[0].title;
@@ -923,7 +1557,7 @@ function renderActivityLog() {
     if (!activityLog || activityLog.length === 0) { box.innerHTML = '<div class="upcoming-empty">아직 활동이 없어요</div>'; return; }
     box.innerHTML = activityLog.slice(0, 8).map(a => `
         <div class="upcoming-item">
-            <span class="upcoming-dday" style="background:#7b8794;">${escHtml(a.label || a.action)}</span>
+            <span class="upcoming-dday" style="background:#64748b;">${escHtml(a.label || a.action)}</span>
             <div class="upcoming-info">
                 <div class="upcoming-title">${escHtml(a.title)}</div>
                 <div class="upcoming-meta">${escHtml(a.user)} · ${timeAgo(a.ts)}</div>
@@ -932,11 +1566,11 @@ function renderActivityLog() {
 }
 
 const DDAY_THEMES = [
-    { keys: ['여행','트립','trip','바다','휴가','제주','부산'], gradient: 'linear-gradient(120deg,#36d1dc,#5b86e5)' },
+    { keys: ['여행','트립','trip','바다','휴가','제주','부산','연차'], gradient: 'linear-gradient(120deg,#36d1dc,#5b86e5)' },
     { keys: ['생일','파티','축하'], gradient: 'linear-gradient(120deg,#ff9a9e,#fecfef)' },
     { keys: ['회식','술','맥주','고기'], gradient: 'linear-gradient(120deg,#f7971e,#ffd200)' },
     { keys: ['결혼','웨딩'], gradient: 'linear-gradient(120deg,#ffdde1,#ee9ca7)' },
-    { keys: ['크리스마스','연말','성탄'], gradient: 'linear-gradient(120deg,#0f2027,#2c5364)' },
+    { keys: ['크리스마스','연말','성탄','새해','설날'], gradient: 'linear-gradient(120deg,#0f2027,#2c5364)' },
     { keys: ['시험','마감','제출','발표'], gradient: 'linear-gradient(120deg,#232526,#414345)' },
 ];
 function pickDdayTheme(title) {
@@ -948,11 +1582,12 @@ function pickDdayTheme(title) {
 
 function renderDdayBanner() {
     const el = document.getElementById('ddayBanner');
+    if (!el) return;
     const showEmptyBanner = () => {
         el.className = 'dday-banner empty';
         el.style.backgroundImage = '';
         document.getElementById('bannerDday').textContent = '';
-        document.getElementById('bannerTitle').textContent = '📌 클릭해서 상단 배너를 설정해보세요';
+        document.getElementById('bannerTitle').textContent = '📌 클릭해서 상단 배너를 설정해보세요 (2027년 황금연휴 D-Day 추천!)';
         document.getElementById('bannerDate').textContent = '';
     };
     if (!ddayBanner || !ddayBanner.title || !ddayBanner.date) { showEmptyBanner(); return; }
@@ -997,6 +1632,12 @@ function openDdayBannerConfig() {
         });
     }
 
+    // 2027 주요 명절/연휴 빠른 선택 옵션 추가
+    const opt27 = document.createElement('option');
+    opt27.value = JSON.stringify({ title: '2027 설날 황금연휴', date: '2027-02-06' });
+    opt27.textContent = '✨ [2027-02-06] 2027 설날 황금연휴';
+    selectEl.appendChild(opt27);
+
     document.getElementById('bannerTitleInput').value = ddayBanner ? ddayBanner.title : '';
     document.getElementById('bannerDateInput').value = ddayBanner ? ddayBanner.date : '';
     document.getElementById('bannerImageInput').value = ddayBanner ? (ddayBanner.imageUrl || '') : '';
@@ -1011,7 +1652,7 @@ function openDdayBannerConfig() {
 function handleBannerImageUpload(event) {
     const file = event.target.files && event.target.files[0];
     if (!file) return;
-    if (!file.type.startsWith('image/')) { alert('이미지 파일만 업로드할 수 있어요.'); event.target.value = ''; return; }
+    if (!file.type.startsWith('image/')) { showNotifToast('⚠️ 이미지 파일만 업로드할 수 있어요.'); event.target.value = ''; return; }
     const reader = new FileReader();
     reader.onload = (e) => {
         const img = new Image();
@@ -1021,12 +1662,12 @@ function handleBannerImageUpload(event) {
                 document.getElementById('bannerImageInput').value = resizedDataUrl;
                 document.getElementById('bannerImagePreview').src = resizedDataUrl;
                 document.getElementById('bannerImagePreviewRow').style.display = 'flex';
-            } catch(_) { alert('이미지 처리 중 오류가 발생했어요.'); }
+            } catch(_) { showNotifToast('⚠️ 이미지 처리 중 오류가 발생했어요.'); }
         };
-        img.onerror = () => alert('이미지를 불러오지 못했어요.');
+        img.onerror = () => showNotifToast('⚠️ 이미지를 불러오지 못했어요.');
         img.src = e.target.result;
     };
-    reader.onerror = () => alert('파일을 읽지 못했어요.');
+    reader.onerror = () => showNotifToast('⚠️ 파일을 읽지 못했어요.');
     reader.readAsDataURL(file);
 }
 
@@ -1070,9 +1711,9 @@ function onBannerEventSelectChange() {
 async function persistDdayBanner(bannerObj) {
     ddayBanner = bannerObj;
     if (firebaseReady) {
-        await db.ref('calendarShared/banner').set(bannerObj);
+        try { await db.ref('calendarShared/banner').set(bannerObj); } catch(_) {}
     }
-    localStorage.setItem('dday_banner_c1', JSON.stringify(bannerObj));
+    safeSetStorage('dday_banner_c1', JSON.stringify(bannerObj));
     renderDdayBanner();
 }
 
@@ -1080,7 +1721,7 @@ function saveDdayBanner() {
     const title = document.getElementById('bannerTitleInput').value.trim();
     const date = document.getElementById('bannerDateInput').value;
     const imageUrl = document.getElementById('bannerImageInput').value.trim();
-    if (!title || !date) { alert('제목과 날짜를 입력해주세요.'); return; }
+    if (!title || !date) { showNotifToast('⚠️ 배너 제목과 날짜를 입력해주세요.'); return; }
     closeModal('ddayBannerModal');
     persistDdayBanner({ title, date, imageUrl: imageUrl || null });
 }
@@ -1093,6 +1734,7 @@ function clearDdayBanner() {
 // ── 팀 메모장 ──
 function renderChatMessages() {
     const box = document.getElementById('chatMessages');
+    if (!box) return;
     if (!teamMessages || teamMessages.length === 0) { box.innerHTML = '<div class="chat-empty">아직 메모가 없어요</div>'; return; }
     box.innerHTML = teamMessages.map(m => {
         const time = new Date(m.ts).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
@@ -1106,19 +1748,26 @@ function renderChatMessages() {
     box.scrollTop = box.scrollHeight;
 }
 
-async function deleteTeamMessage(msgId) {
-    if (!confirm('이 메모를 삭제하시겠습니까?')) return;
-    teamMessages = teamMessages.filter(m => m.id !== msgId);
-    if (firebaseReady) {
-        await db.ref('calendarShared/messages').set(teamMessages);
-    }
-    localStorage.setItem('teamMessages_c1', JSON.stringify(teamMessages));
-    renderChatMessages();
+function deleteTeamMessage(msgId) {
+    openConfirmDialog({
+        title: '메모 삭제',
+        message: '이 메모를 삭제하시겠습니까?',
+        okText: '삭제',
+        danger: true,
+        onOk: async () => {
+            teamMessages = teamMessages.filter(m => m.id !== msgId);
+            if (firebaseReady) {
+                try { await db.ref('calendarShared/messages').set(teamMessages); } catch(_) {}
+            }
+            safeSetStorage('teamMessages_c1', JSON.stringify(teamMessages));
+            renderChatMessages();
+        }
+    });
 }
 
 function renderChatAuthorOptions() {
     const sel = document.getElementById('chatAuthorSelect');
-    const lastPicked = localStorage.getItem('chat_author_c1') || '';
+    const lastPicked = safeGetStorage('chat_author_c1', '');
     if (!members || members.length === 0) {
         sel.innerHTML = '<option value="">멤버 없음</option>';
         sel.disabled = true;
@@ -1140,9 +1789,9 @@ async function sendTeamMessage() {
     const textInput = document.getElementById('chatTextInput');
     const author = authorSelect.value;
     const text = textInput.value.trim();
-    if (!author) { alert('멤버를 먼저 사이드바에서 추가해주세요.'); return; }
+    if (!author) { showNotifToast('⚠️ 멤버를 먼저 사이드바에서 추가해주세요.'); return; }
     if (!text) return;
-    localStorage.setItem('chat_author_c1', author);
+    safeSetStorage('chat_author_c1', author);
     const msg = { id: Date.now().toString(), author, text, ts: Date.now() };
 
     textInput.disabled = true;
@@ -1152,18 +1801,18 @@ async function sendTeamMessage() {
         if (firebaseReady) {
             await db.ref('calendarShared/messages').set(teamMessages);
         }
-        localStorage.setItem('teamMessages_c1', JSON.stringify(teamMessages));
+        safeSetStorage('teamMessages_c1', JSON.stringify(teamMessages));
         renderChatMessages();
         textInput.value = '';
     } catch (_) {
-        alert('메모 전송에 실패했어요.');
+        showNotifToast('⚠️ 메모 전송에 실패했어요.');
     } finally {
         textInput.disabled = false;
         textInput.focus();
     }
 }
 
-function getNextDayStr(dateStr) { const d = new Date(dateStr); d.setDate(d.getDate() + 1); return fmtDate(d); }
+function getNextDayStr(dateStr) { const d = new Date(dateStr + 'T00:00:00'); d.setDate(d.getDate() + 1); return fmtDate(d); }
 
 function toggleRepeatUntil() {
     const v = document.getElementById('eventRepeat').value;
@@ -1194,7 +1843,7 @@ function generateRecurrences(baseEvent, repeatType, repeatUntilStr) {
 
 function saveEvent() {
     const title = document.getElementById('eventTitle').value.trim();
-    if (!title) { alert('일정명을 입력해주세요.'); return; }
+    if (!title) { showNotifToast('⚠️ 일정명을 입력해주세요.'); return; }
 
     const allDay = document.getElementById('eventAllDay').checked;
     const sDate = document.getElementById('eventStartDate').value; const eDate = document.getElementById('eventEndDate').value;
@@ -1202,6 +1851,8 @@ function saveEvent() {
     const startStr = allDay ? sDate : `${sDate}T${sTime}:00`; const endStr = allDay ? getNextDayStr(eDate) : `${eDate}T${eTime}:00`;
     const color = document.getElementById('eventColor').value;
     const completed = document.getElementById('eventCompleted').checked;
+    const category = document.getElementById('eventCategory').value || '일반';
+    const memo = document.getElementById('eventMemo').value.trim();
     let link = document.getElementById('eventLink').value.trim();
     if (link && !/^https?:\/\//i.test(link)) link = 'https://' + link;
 
@@ -1209,18 +1860,19 @@ function saveEvent() {
         id: currentEditingEvent ? currentEditingEvent.id : Date.now().toString(),
         title: title, start: startStr, end: endStr, allDay: allDay,
         backgroundColor: color, borderColor: color, memberIdx: selectedMemberIdx,
+        category: category, memo: memo || null,
         completed: completed, link: link || null,
         groupId: currentEditingEvent ? (currentEditingEvent.extendedProps.groupId || null) : null
     };
 
     const isNew = !currentEditingEvent;
-    closeModal('eventModal');
 
     if (isNew) {
         const repeatType = document.getElementById('eventRepeat').value;
         if (repeatType !== 'none') {
             const repeatUntil = document.getElementById('eventRepeatUntil').value;
-            if (!repeatUntil) { alert('반복 종료일을 선택해주세요.'); return; }
+            if (!repeatUntil) { showNotifToast('⚠️ 반복 종료일을 선택해주세요.'); return; }
+            closeModal('eventModal');
             eventData.groupId = eventData.id;
             const occurrences = generateRecurrences(eventData, repeatType, repeatUntil);
             syncActionToCloud('ADD_MULTI', occurrences);
@@ -1228,26 +1880,46 @@ function saveEvent() {
         }
     }
 
+    closeModal('eventModal');
     syncActionToCloud(currentEditingEvent ? 'UPDATE' : 'ADD', eventData);
 }
 
 function deleteEvent() {
+    if (!currentEditingEvent) return;
     const groupId = currentEditingEvent.extendedProps.groupId;
+    const targetId = currentEditingEvent.id;
     if (groupId) {
-        const deleteAll = confirm('이 일정은 반복 일정의 일부입니다.\n\n확인 = 반복되는 일정 전체 삭제\n취소 = 이 날짜 일정만 삭제');
-        closeModal('eventModal');
-        if (deleteAll) syncActionToCloud('DELETE_GROUP', { groupId });
-        else syncActionToCloud('DELETE', { id: currentEditingEvent.id });
+        openConfirmDialog({
+            title: '반복 일정 삭제',
+            message: '이 일정은 반복 일정의 일부입니다.\n반복되는 일정 전체를 삭제할까요, 이 날짜만 삭제할까요?',
+            okText: '전체 삭제',
+            cancelText: '이 일정만 삭제',
+            danger: true,
+            onOk: () => {
+                closeModal('eventModal');
+                syncActionToCloud('DELETE_GROUP', { groupId });
+            },
+            onCancel: () => {
+                closeModal('eventModal');
+                syncActionToCloud('DELETE', { id: targetId });
+            }
+        });
         return;
     }
-    if (!confirm('삭제하시겠습니까?')) return;
-    let eventData = { id: currentEditingEvent.id };
-    closeModal('eventModal');
-    syncActionToCloud('DELETE', eventData);
+    openConfirmDialog({
+        title: '일정 삭제',
+        message: '이 일정을 삭제하시겠습니까?',
+        okText: '삭제',
+        danger: true,
+        onOk: () => {
+            closeModal('eventModal');
+            syncActionToCloud('DELETE', { id: targetId });
+        }
+    });
 }
 
 async function syncActionToCloud(actionType, eventData) {
-    let events = JSON.parse(localStorage.getItem('myAdvancedEvents_c1') || '[]');
+    let events = JSON.parse(safeGetStorage('myAdvancedEvents_c1', '[]'));
     let logData = eventData;
 
     if (actionType === 'ADD') events.push(eventData);
@@ -1267,9 +1939,9 @@ async function syncActionToCloud(actionType, eventData) {
 
     if (actionType !== 'MEMBER_UPDATE') {
         pushActivityLog(actionType, logData);
-        localStorage.setItem('activity_log_c1', JSON.stringify(activityLog));
+        safeSetStorage('activity_log_c1', JSON.stringify(activityLog));
     }
-    localStorage.setItem('myAdvancedEvents_c1', JSON.stringify(events));
+    safeSetStorage('myAdvancedEvents_c1', JSON.stringify(events));
     refreshCalendarEvents(events);
 
     if (firebaseReady) {
@@ -1283,7 +1955,7 @@ async function syncActionToCloud(actionType, eventData) {
             document.getElementById('sync-status-txt').textContent = '☁️ 실시간 동기화 완료';
         } catch (error) {
             console.error('Firebase 저장 에러:', error);
-            alert('저장에 실패했습니다.');
+            showNotifToast('⚠️ 클라우드 저장 실패 (로컬에 보관됨)');
         } finally {
             document.getElementById('loading-overlay').style.display = 'none';
         }
@@ -1291,11 +1963,24 @@ async function syncActionToCloud(actionType, eventData) {
 }
 
 function refreshCalendarEvents(events) {
-    if(!calendar) return;
-    lastRawEvents = events;
+    if (!calendar) return;
+    lastRawEvents = events || [];
     calendar.removeAllEvents();
     const holidayEvents = Object.entries(HOLIDAY_MAP).map(([date, name]) => makeHolidayEvent(date, name));
-    const visibleEvents = events.filter(e => !(e.memberIdx !== null && e.memberIdx !== undefined && hiddenMembers.has(e.memberIdx)));
+
+    const visibleEvents = lastRawEvents.filter(e => {
+        if (e.memberIdx !== null && e.memberIdx !== undefined && hiddenMembers.has(e.memberIdx)) return false;
+        if (currentCategoryFilter !== 'ALL') {
+            const cat = e.category || '일반';
+            if (cat !== currentCategoryFilter) return false;
+        }
+        if (currentSearchKeyword) {
+            const memberName = (e.memberIdx !== null && e.memberIdx !== undefined && members[e.memberIdx]) ? members[e.memberIdx].name : '';
+            const haystack = `${e.title || ''} ${e.memo || ''} ${e.category || ''} ${memberName}`.toLowerCase();
+            if (!haystack.includes(currentSearchKeyword)) return false;
+        }
+        return true;
+    });
 
     let formattedEvents = visibleEvents.map(e => {
         let eColor = e.backgroundColor || '#3498db';
@@ -1306,12 +1991,105 @@ function refreshCalendarEvents(events) {
             id: e.id, title: e.title, start: e.start, end: e.end, allDay: e.allDay,
             backgroundColor: eColor, borderColor: eColor,
             classNames: e.completed ? ['event-completed'] : [],
-            extendedProps: { memberIdx: e.memberIdx, completed: !!e.completed, groupId: e.groupId || null, link: e.link || null }
+            extendedProps: {
+                memberIdx: e.memberIdx,
+                completed: !!e.completed,
+                groupId: e.groupId || null,
+                link: e.link || null,
+                category: e.category || '일반',
+                memo: e.memo || null
+            }
         };
     });
     
     calendar.addEventSource([...formattedEvents, ...holidayEvents]);
     renderUpcomingSummary(visibleEvents);
+    updateMonthlyStats();
+}
+
+// ── 월간 통계 업데이트 ──
+function updateMonthlyStats() {
+    if (!calendar) return;
+    const currentDate = calendar.getDate();
+    const ymPrefix = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
+
+    const monthEvents = (lastRawEvents || []).filter(e => (e.start || '').startsWith(ymPrefix));
+    const total = monthEvents.length;
+    const doneCount = monthEvents.filter(e => e.completed).length;
+    const rate = total > 0 ? Math.round((doneCount / total) * 100) : 0;
+
+    const holidayCount = Object.keys(HOLIDAY_MAP).filter(d => d.startsWith(ymPrefix)).length;
+
+    const memberCounts = {};
+    monthEvents.forEach(e => {
+        if (e.memberIdx !== null && e.memberIdx !== undefined && members[e.memberIdx]) {
+            const name = members[e.memberIdx].name;
+            memberCounts[name] = (memberCounts[name] || 0) + 1;
+        }
+    });
+    let topMember = '-';
+    let maxCnt = 0;
+    Object.entries(memberCounts).forEach(([name, cnt]) => {
+        if (cnt > maxCnt) { maxCnt = cnt; topMember = `${name}(${cnt})`; }
+    });
+
+    const elTotal = document.getElementById('statMonthTotal');
+    const elDone = document.getElementById('statMonthDone');
+    const elHol = document.getElementById('statMonthHolidays');
+    const elTop = document.getElementById('statMonthTopMember');
+    if (elTotal) elTotal.textContent = `${total}건`;
+    if (elDone) elDone.textContent = `${rate}%`;
+    if (elHol) elHol.textContent = `${holidayCount}일`;
+    if (elTop) elTop.textContent = topMember;
+}
+
+// ── ICS 및 JSON 내보내기 ──
+function exportCalendarICS() {
+    const lines = [
+        'BEGIN:VCALENDAR',
+        'VERSION:2.0',
+        'PRODID:-//TeamCalendar2027//KO',
+        'CALSCALE:GREGORIAN'
+    ];
+    (lastRawEvents || []).forEach(e => {
+        const s = (e.start || '').replace(/[-:]/g, '').split('.')[0];
+        const end = (e.end || e.start || '').replace(/[-:]/g, '').split('.')[0];
+        if (!s) return;
+        lines.push('BEGIN:VEVENT');
+        lines.push(`UID:${e.id}@teamcal`);
+        lines.push(`SUMMARY:${e.title || '일정'}`);
+        if (e.allDay) {
+            lines.push(`DTSTART;VALUE=DATE:${s.substring(0,8)}`);
+            lines.push(`DTEND;VALUE=DATE:${end.substring(0,8)}`);
+        } else {
+            lines.push(`DTSTART:${s}`);
+            lines.push(`DTEND:${end}`);
+        }
+        if (e.memo) lines.push(`DESCRIPTION:${e.memo.replace(/\n/g, '\\n')}`);
+        lines.push('END:VEVENT');
+    });
+    lines.push('END:VCALENDAR');
+    const blob = new Blob([lines.join('\r\n')], { type: 'text/calendar;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `team_calendar_${fmtDate(new Date())}.ics`;
+    a.click();
+    showNotifToast('📥 ICS 캘린더 파일이 다운로드되었어요!');
+}
+
+function exportCalendarJSON() {
+    const payload = {
+        exportedAt: new Date().toISOString(),
+        members,
+        events: lastRawEvents,
+        ddayBanner
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `team_calendar_backup_${fmtDate(new Date())}.json`;
+    a.click();
+    showNotifToast('💾 JSON 백업 파일이 저장되었어요!');
 }
 
 function renderUpcomingSummary(events) {
@@ -1335,7 +2113,7 @@ function renderUpcomingSummary(events) {
         const hasMember = it.memberIdx !== null && it.memberIdx !== undefined && members[it.memberIdx];
         const color = hasMember ? members[it.memberIdx].color : '#999';
         const memberName = hasMember ? members[it.memberIdx].name : '';
-        return `<div class="upcoming-item">
+        return `<div class="upcoming-item" onclick="jumpToYearMonth('${it.dateStr}')">
             <span class="upcoming-dday" style="background:${color};">${dday}</span>
             <div class="upcoming-info">
                 <div class="upcoming-title">${escHtml(it.title)}</div>
@@ -1353,10 +2131,10 @@ async function initCalendarApp() {
 
     renderMembers();
 
-    let savedEvents = JSON.parse(localStorage.getItem('myAdvancedEvents_c1') || '[]');
-    teamMessages = JSON.parse(localStorage.getItem('teamMessages_c1') || '[]');
-    ddayBanner = JSON.parse(localStorage.getItem('dday_banner_c1') || 'null');
-    activityLog = JSON.parse(localStorage.getItem('activity_log_c1') || '[]');
+    let savedEvents = JSON.parse(safeGetStorage('myAdvancedEvents_c1', '[]'));
+    teamMessages = JSON.parse(safeGetStorage('teamMessages_c1', '[]'));
+    ddayBanner = JSON.parse(safeGetStorage('dday_banner_c1', 'null'));
+    activityLog = JSON.parse(safeGetStorage('activity_log_c1', '[]'));
 
     renderDdayBanner();
     renderActivityLog();
@@ -1364,7 +2142,6 @@ async function initCalendarApp() {
     if (firebaseReady) {
         document.getElementById('sync-status-txt').textContent = '☁️ Firebase 실시간 연결됨';
         
-        // 실시간 클라우드 리스너
         db.ref('calendarShared').on('value', snap => {
             const data = snap.val();
             if (!data) return;
@@ -1372,7 +2149,7 @@ async function initCalendarApp() {
             let cloudEvents = data.events || [];
             if (data.members) {
                 members = data.members;
-                localStorage.setItem('cal_members_c1', JSON.stringify(members));
+                safeSetStorage('cal_members_c1', JSON.stringify(members));
                 renderMembers();
             }
             if (data.messages) teamMessages = data.messages;
@@ -1391,7 +2168,7 @@ async function initCalendarApp() {
             }
 
             savedEvents = cloudEvents;
-            localStorage.setItem('myAdvancedEvents_c1', JSON.stringify(savedEvents));
+            safeSetStorage('myAdvancedEvents_c1', JSON.stringify(savedEvents));
             refreshCalendarEvents(savedEvents);
             knownEventIds = new Set(savedEvents.map(e => e.id));
         });
@@ -1405,11 +2182,24 @@ async function initCalendarApp() {
         selectLongPressDelay: 120, eventLongPressDelay: 120,
         height: 'auto',
         events: [],
+        datesSet: () => { updateMonthlyStats(); },
         dayCellClassNames: (arg) => { const ds = fmtDate(arg.date); if (HOLIDAY_MAP[ds]) return ['holiday-day']; return []; },
-        dateClick: (info) => { openNewEventModal(info.dateStr); },
+        dateClick: (info) => {
+            if (HOLIDAY_MAP[info.dateStr]) {
+                showToast(`${info.dateStr} · ${HOLIDAY_MAP[info.dateStr]}`);
+            }
+            openNewEventModal(info.dateStr);
+        },
         eventContent: (arg) => {
             const wrapper = document.createElement('div');
             wrapper.className = 'fc-event-main-custom';
+            const cat = arg.event.extendedProps.category;
+            if (cat && CATEGORY_EMOJI[cat]) {
+                const badge = document.createElement('span');
+                badge.className = 'fc-event-cat-badge';
+                badge.textContent = CATEGORY_EMOJI[cat];
+                wrapper.appendChild(badge);
+            }
             const titleEl = document.createElement('span');
             titleEl.className = 'fc-event-title-custom';
             titleEl.textContent = arg.event.title;
@@ -1431,8 +2221,12 @@ async function initCalendarApp() {
         },
         select: (info) => {
             currentEditingEvent = null; selectedMemberIdx = null; renderEventModal();
-            document.getElementById('modal-title-txt').textContent = '일정 등록'; document.getElementById('eventTitle').value = '';
-            document.getElementById('eventAllDay').checked = info.allDay; document.getElementById('eventColor').value = '#3498db';
+            document.getElementById('modal-title-txt').textContent = '일정 등록';
+            document.getElementById('eventTitle').value = '';
+            document.getElementById('eventCategory').value = '일반';
+            document.getElementById('eventMemo').value = '';
+            document.getElementById('eventAllDay').checked = info.allDay;
+            document.getElementById('eventColor').value = '#3498db';
             document.getElementById('eventCompleted').checked = false;
             document.getElementById('eventLink').value = '';
             document.getElementById('repeatRow').style.display = 'flex';
@@ -1445,10 +2239,14 @@ async function initCalendarApp() {
             toggleTimeInputs(); document.getElementById('btnDelete').style.display = 'none'; openModal('eventModal');
         },
         eventClick: (info) => {
-            if (info.event.classNames.includes('holiday-event')) { showToast(info.event.title); return; }
+            if (info.event.classNames.includes('holiday-event')) { showToast(info.event.title.replace(/^🎌\s*/, '')); return; }
             currentEditingEvent = info.event; selectedMemberIdx = info.event.extendedProps.memberIdx ?? null; renderEventModal();
-            document.getElementById('modal-title-txt').textContent = '일정 수정'; document.getElementById('eventTitle').value = info.event.title;
-            document.getElementById('eventColor').value = info.event.backgroundColor || '#3498db'; document.getElementById('eventAllDay').checked = info.event.allDay;
+            document.getElementById('modal-title-txt').textContent = '일정 수정';
+            document.getElementById('eventTitle').value = info.event.title;
+            document.getElementById('eventCategory').value = info.event.extendedProps.category || '일반';
+            document.getElementById('eventMemo').value = info.event.extendedProps.memo || '';
+            document.getElementById('eventColor').value = info.event.backgroundColor || '#3498db';
+            document.getElementById('eventAllDay').checked = info.event.allDay;
             document.getElementById('eventCompleted').checked = !!info.event.extendedProps.completed;
             document.getElementById('eventLink').value = info.event.extendedProps.link || '';
             document.getElementById('repeatRow').style.display = 'none';
@@ -1459,14 +2257,13 @@ async function initCalendarApp() {
             if (!info.event.allDay) { document.getElementById('eventStartTime').value = fmtTime(info.event.start); document.getElementById('eventEndTime').value = fmtTime(endObj); }
             toggleTimeInputs(); document.getElementById('btnDelete').style.display = 'block'; openModal('eventModal');
         },
-        eventDrop: (info) => { syncActionToCloud('UPDATE', { id: info.event.id, title: info.event.title, start: info.event.startStr, end: info.event.endStr, allDay: info.event.allDay, backgroundColor: info.event.backgroundColor, borderColor: info.event.borderColor, memberIdx: info.event.extendedProps.memberIdx, completed: info.event.extendedProps.completed, groupId: info.event.extendedProps.groupId, link: info.event.extendedProps.link }); },
-        eventResize: (info) => { syncActionToCloud('UPDATE', { id: info.event.id, title: info.event.title, start: info.event.startStr, end: info.event.endStr, allDay: info.event.allDay, backgroundColor: info.event.backgroundColor, borderColor: info.event.borderColor, memberIdx: info.event.extendedProps.memberIdx, completed: info.event.extendedProps.completed, groupId: info.event.extendedProps.groupId, link: info.event.extendedProps.link }); }
+        eventDrop: (info) => { syncActionToCloud('UPDATE', { id: info.event.id, title: info.event.title, start: info.event.startStr, end: info.event.endStr, allDay: info.event.allDay, backgroundColor: info.event.backgroundColor, borderColor: info.event.borderColor, memberIdx: info.event.extendedProps.memberIdx, completed: info.event.extendedProps.completed, groupId: info.event.extendedProps.groupId, link: info.event.extendedProps.link, category: info.event.extendedProps.category, memo: info.event.extendedProps.memo }); },
+        eventResize: (info) => { syncActionToCloud('UPDATE', { id: info.event.id, title: info.event.title, start: info.event.startStr, end: info.event.endStr, allDay: info.event.allDay, backgroundColor: info.event.backgroundColor, borderColor: info.event.borderColor, memberIdx: info.event.extendedProps.memberIdx, completed: info.event.extendedProps.completed, groupId: info.event.extendedProps.groupId, link: info.event.extendedProps.link, category: info.event.extendedProps.category, memo: info.event.extendedProps.memo }); }
     });
     
-    refreshCalendarEvents(savedEvents);
     calendar.render();
+    refreshCalendarEvents(savedEvents);
 
-    // 화면 회전 및 리사이즈 시 캘린더 크기 재계산
     window.addEventListener('resize', () => {
         if (calendar) calendar.updateSize();
     });
@@ -1475,11 +2272,558 @@ async function initCalendarApp() {
     updateNotifBtn();
 }
 
-function showToast(msg) { const t = document.getElementById('holiday-toast'); t.textContent = '🎌 ' + msg; t.style.display = 'block'; setTimeout(() => { t.style.display = 'none'; }, 2500); }
+function showToast(msg) { const t = document.getElementById('holiday-toast'); t.textContent = '🎌 ' + msg; t.style.display = 'block'; setTimeout(() => { t.style.display = 'none'; }, 2600); }
 
-// AI 체스 / 오목 기본 핸들러
-function openChessGame() { alert('AI 체스는 좌측 하단 대결 모듈을 이용해주세요.'); }
-function openOmokGame() { alert('AI 오목은 좌측 하단 대결 모듈을 이용해주세요.'); }
+// ============================================================================
+// ♟ AI 체스 게임 엔진 (Chess.js + 알파베타 미니맥스 AI)
+// ============================================================================
+let chessGame = null;
+let chessSelectedSq = null;
+let chessValidMoves = [];
+let chessLastMove = null;
+let chessAiThinking = false;
+
+const CHESS_ICONS = {
+    wp: '♙', wn: '♘', wb: '♗', wr: '♖', wq: '♕', wk: '♔',
+    bp: '♟', bn: '♞', bb: '♝', br: '♜', bq: '♛', bk: '♚'
+};
+const CHESS_VALS = { p: 100, n: 320, b: 330, r: 500, q: 900, k: 20000 };
+
+function openChessGame() {
+    openModal('chessModal');
+    if (!chessGame) startNewChessGame();
+    else renderChessBoard();
+}
+
+function updateChessLevelBadge() {
+    const lv = document.getElementById('chessLevel').value;
+    const badge = document.getElementById('chessLevelBadge');
+    if (badge) badge.textContent = 'Lv.' + lv;
+}
+
+function startNewChessGame() {
+    if (typeof Chess === 'undefined') {
+        showNotifToast('⚠️ 체스 라이브러리를 불러오는 중입니다.');
+        return;
+    }
+    chessGame = new Chess();
+    chessSelectedSq = null;
+    chessValidMoves = [];
+    chessLastMove = null;
+    chessAiThinking = false;
+    updateChessLevelBadge();
+    renderChessBoard();
+    updateChessStatus();
+}
+
+function undoChessMove() {
+    if (!chessGame || chessAiThinking) return;
+    chessGame.undo();
+    chessGame.undo();
+    chessSelectedSq = null;
+    chessValidMoves = [];
+    chessLastMove = null;
+    renderChessBoard();
+    updateChessStatus();
+}
+
+function renderChessBoard() {
+    const boardEl = document.getElementById('chessBoard');
+    if (!boardEl || !chessGame) return;
+    boardEl.innerHTML = '';
+    const board = chessGame.board();
+    const files = ['a','b','c','d','e','f','g','h'];
+    const inCheck = chessGame.in_check();
+    const turn = chessGame.turn();
+
+    for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) {
+            const sqName = files[c] + (8 - r);
+            const piece = board[r][c];
+            const isLight = (r + c) % 2 === 0;
+            const sqEl = document.createElement('div');
+            sqEl.className = 'chess-sq ' + (isLight ? 'light' : 'dark');
+            if (chessSelectedSq === sqName) sqEl.classList.add('selected');
+            if (chessLastMove && (chessLastMove.from === sqName || chessLastMove.to === sqName)) {
+                sqEl.classList.add('last-move');
+            }
+            if (inCheck && piece && piece.type === 'k' && piece.color === turn) {
+                sqEl.classList.add('in-check');
+            }
+
+            const moveHint = chessValidMoves.find(m => m.to === sqName);
+            if (moveHint) {
+                sqEl.classList.add(piece ? 'hint-capture' : 'hint');
+            }
+
+            if (c === 0) {
+                const rankSpan = document.createElement('span');
+                rankSpan.className = 'coord-rank';
+                rankSpan.textContent = 8 - r;
+                sqEl.appendChild(rankSpan);
+            }
+            if (r === 7) {
+                const fileSpan = document.createElement('span');
+                fileSpan.className = 'coord-file';
+                fileSpan.textContent = files[c];
+                sqEl.appendChild(fileSpan);
+            }
+
+            if (piece) {
+                const pSpan = document.createElement('span');
+                pSpan.className = 'chess-piece p' + piece.color;
+                pSpan.textContent = CHESS_ICONS[piece.color + piece.type] || '';
+                sqEl.appendChild(pSpan);
+            }
+
+            sqEl.onclick = () => onChessSquareClick(sqName);
+            boardEl.appendChild(sqEl);
+        }
+    }
+    renderChessExtras();
+}
+
+function renderChessExtras() {
+    if (!chessGame) return;
+    const history = chessGame.history({ verbose: true });
+    const capW = [];
+    const capB = [];
+    history.forEach(m => {
+        if (m.captured) {
+            if (m.color === 'w') capW.push(CHESS_ICONS['b' + m.captured]);
+            else capB.push(CHESS_ICONS['w' + m.captured]);
+        }
+    });
+    const wEl = document.getElementById('chessCapturedByWhite');
+    const bEl = document.getElementById('chessCapturedByBlack');
+    if (wEl) wEl.textContent = capB.join('');
+    if (bEl) bEl.textContent = capW.join('');
+
+    const listEl = document.getElementById('chessMoveList');
+    if (listEl) {
+        const sanHistory = chessGame.history();
+        let html = '';
+        for (let i = 0; i < sanHistory.length; i += 2) {
+            const num = Math.floor(i / 2) + 1;
+            const wMove = sanHistory[i] || '';
+            const bMove = sanHistory[i + 1] || '';
+            html += `<div class="chess-move-pair"><span class="chess-move-num">${num}.</span><span style="flex:1;">${wMove}</span><span style="flex:1;">${bMove}</span></div>`;
+        }
+        listEl.innerHTML = html || '<div style="color:var(--text-muted); font-size:12px;">아직 기보가 없습니다</div>';
+        listEl.scrollTop = listEl.scrollHeight;
+    }
+}
+
+function onChessSquareClick(sqName) {
+    if (!chessGame || chessAiThinking || chessGame.game_over() || chessGame.turn() !== 'w') return;
+
+    const moveAttempt = chessValidMoves.find(m => m.to === sqName);
+    if (moveAttempt) {
+        const moveObj = chessGame.move({ from: chessSelectedSq, to: sqName, promotion: 'q' });
+        if (moveObj) {
+            chessLastMove = { from: moveObj.from, to: moveObj.to };
+            chessSelectedSq = null;
+            chessValidMoves = [];
+            renderChessBoard();
+            updateChessStatus();
+            if (!chessGame.game_over()) {
+                chessAiThinking = true;
+                setTimeout(makeChessAiMove, 260);
+            }
+            return;
+        }
+    }
+
+    const piece = chessGame.get(sqName);
+    if (piece && piece.color === 'w') {
+        chessSelectedSq = sqName;
+        chessValidMoves = chessGame.moves({ square: sqName, verbose: true });
+    } else {
+        chessSelectedSq = null;
+        chessValidMoves = [];
+    }
+    renderChessBoard();
+}
+
+function evaluateChessBoard(game) {
+    if (game.in_checkmate()) return game.turn() === 'w' ? -99999 : 99999;
+    if (game.in_draw() || game.in_stalemate() || game.in_threefold_repetition()) return 0;
+    const board = game.board();
+    let score = 0;
+    for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) {
+            const p = board[r][c];
+            if (!p) continue;
+            const centerBonus = (3.5 - Math.abs(3.5 - r)) * 4 + (3.5 - Math.abs(3.5 - c)) * 4;
+            const val = (CHESS_VALS[p.type] || 0) + centerBonus;
+            score += p.color === 'w' ? val : -val;
+        }
+    }
+    return score;
+}
+
+function minimaxChess(game, depth, alpha, beta, isMaximizing) {
+    if (depth === 0 || game.game_over()) return evaluateChessBoard(game);
+    const moves = game.moves();
+    if (isMaximizing) {
+        let maxEval = -Infinity;
+        for (let i = 0; i < moves.length; i++) {
+            game.move(moves[i]);
+            const ev = minimaxChess(game, depth - 1, alpha, beta, false);
+            game.undo();
+            if (ev > maxEval) maxEval = ev;
+            if (ev > alpha) alpha = ev;
+            if (beta <= alpha) break;
+        }
+        return maxEval;
+    } else {
+        let minEval = Infinity;
+        for (let i = 0; i < moves.length; i++) {
+            game.move(moves[i]);
+            const ev = minimaxChess(game, depth - 1, alpha, beta, true);
+            game.undo();
+            if (ev < minEval) minEval = ev;
+            if (ev < beta) beta = ev;
+            if (beta <= alpha) break;
+        }
+        return minEval;
+    }
+}
+
+function makeChessAiMove() {
+    if (!chessGame || chessGame.game_over()) { chessAiThinking = false; return; }
+    const level = parseInt(document.getElementById('chessLevel').value || '5', 10);
+    const moves = chessGame.moves({ verbose: true });
+    if (moves.length === 0) { chessAiThinking = false; return; }
+
+    let chosen = moves[0];
+    if (level <= 2 && Math.random() < 0.65) {
+        chosen = moves[Math.floor(Math.random() * moves.length)];
+    } else {
+        const depth = level >= 8 ? 3 : (level >= 4 ? 2 : 1);
+        let bestScore = Infinity;
+        // 캡처 수 우선 정렬로 가지치기 효율 향상
+        moves.sort((a, b) => (b.captured ? 1 : 0) - (a.captured ? 1 : 0));
+        for (const m of moves) {
+            chessGame.move(m);
+            const noise = level < 6 ? (Math.random() - 0.5) * (70 - level * 10) : 0;
+            const score = minimaxChess(chessGame, depth - 1, -Infinity, Infinity, true) + noise;
+            chessGame.undo();
+            if (score < bestScore) {
+                bestScore = score;
+                chosen = m;
+            }
+        }
+    }
+
+    const moveRes = chessGame.move(chosen);
+    if (moveRes) {
+        chessLastMove = { from: moveRes.from, to: moveRes.to };
+    }
+    chessAiThinking = false;
+    renderChessBoard();
+    updateChessStatus();
+}
+
+function updateChessStatus() {
+    const statusEl = document.getElementById('chessStatus');
+    if (!statusEl || !chessGame) return;
+    statusEl.className = 'chess-status-banner';
+
+    if (chessGame.in_checkmate()) {
+        if (chessGame.turn() === 'w') {
+            statusEl.textContent = '🤖 체크메이트! AI가 승리했습니다.';
+            statusEl.classList.add('status-lose');
+        } else {
+            statusEl.textContent = '🎉 체크메이트! 당신이 승리했습니다!';
+            statusEl.classList.add('status-win');
+            playChime();
+        }
+    } else if (chessGame.in_draw() || chessGame.in_stalemate()) {
+        statusEl.textContent = '🤝 무승부입니다!';
+        statusEl.classList.add('status-draw');
+    } else if (chessGame.in_check()) {
+        statusEl.textContent = (chessGame.turn() === 'w' ? '⚠️ 체크! 당신 차례입니다.' : '🤖 AI가 수비 중입니다...');
+        statusEl.classList.add('status-check');
+    } else {
+        statusEl.textContent = (chessGame.turn() === 'w' ? '🧑 당신 차례입니다 (백)' : '🤖 AI가 생각 중입니다...');
+    }
+}
+
+// ============================================================================
+// ⚫ AI 오목 게임 엔진 (15x15 패턴 가중치 스마트 AI)
+// ============================================================================
+const OMOK_SIZE = 15;
+let omokGrid = [];
+let omokHistory = [];
+let omokGameOver = false;
+let omokTurn = 1; // 1: 흑(유저), 2: 백(AI)
+
+function openOmokGame() {
+    openModal('omokModal');
+    if (!omokGrid || omokGrid.length === 0) startNewOmokGame();
+    else renderOmokBoard();
+}
+
+function updateOmokLevelBadge() {
+    const lv = document.getElementById('omokLevel').value;
+    const badge = document.getElementById('omokLevelBadge');
+    if (badge) badge.textContent = 'Lv.' + lv;
+}
+
+function startNewOmokGame() {
+    omokGrid = Array.from({ length: OMOK_SIZE }, () => Array(OMOK_SIZE).fill(0));
+    omokHistory = [];
+    omokGameOver = false;
+    omokTurn = 1;
+    updateOmokLevelBadge();
+    renderOmokBoard();
+    const st = document.getElementById('omokStatus');
+    if (st) {
+        st.className = 'omok-status-banner';
+        st.textContent = '당신 차례입니다 (흑이 먼저 둡니다)';
+    }
+}
+
+function undoOmokMove() {
+    if (omokHistory.length < 2 || omokGameOver) return;
+    const m2 = omokHistory.pop();
+    const m1 = omokHistory.pop();
+    omokGrid[m2.r][m2.c] = 0;
+    omokGrid[m1.r][m1.c] = 0;
+    omokTurn = 1;
+    renderOmokBoard();
+}
+
+function renderOmokBoard() {
+    const boardEl = document.getElementById('omokBoard');
+    if (!boardEl) return;
+    boardEl.innerHTML = '';
+    const last = omokHistory[omokHistory.length - 1];
+    const stars = [[3,3],[3,11],[7,7],[11,3],[11,11]];
+
+    for (let r = 0; r < OMOK_SIZE; r++) {
+        for (let c = 0; c < OMOK_SIZE; c++) {
+            const cell = document.createElement('div');
+            cell.className = 'omok-cell';
+            if (stars.some(([sr, sc]) => sr === r && sc === c)) {
+                cell.classList.add('omok-star');
+            }
+            const val = omokGrid[r][c];
+            if (val !== 0) {
+                const stone = document.createElement('div');
+                stone.className = 'omok-stone ' + (val === 1 ? 'black' : 'white');
+                if (last && last.r === r && last.c === c) stone.classList.add('last-move');
+                cell.appendChild(stone);
+            }
+            cell.onclick = () => onOmokCellClick(r, c);
+            boardEl.appendChild(cell);
+        }
+    }
+    const cntEl = document.getElementById('omokMoveCount');
+    if (cntEl) cntEl.textContent = `총 ${omokHistory.length}수`;
+}
+
+function checkOmokWin(grid, r, c, color) {
+    const dirs = [[0,1],[1,0],[1,1],[1,-1]];
+    for (const [dr, dc] of dirs) {
+        let count = 1;
+        for (let step = 1; step < 5; step++) {
+            const nr = r + dr * step, nc = c + dc * step;
+            if (nr < 0 || nr >= OMOK_SIZE || nc < 0 || nc >= OMOK_SIZE || grid[nr][nc] !== color) break;
+            count++;
+        }
+        for (let step = 1; step < 5; step++) {
+            const nr = r - dr * step, nc = c - dc * step;
+            if (nr < 0 || nr >= OMOK_SIZE || nc < 0 || nc >= OMOK_SIZE || grid[nr][nc] !== color) break;
+            count++;
+        }
+        if (count >= 5) return true;
+    }
+    return false;
+}
+
+function onOmokCellClick(r, c) {
+    if (omokGameOver || omokTurn !== 1 || omokGrid[r][c] !== 0) return;
+    omokGrid[r][c] = 1;
+    omokHistory.push({ r, c, color: 1 });
+    renderOmokBoard();
+
+    const st = document.getElementById('omokStatus');
+    if (checkOmokWin(omokGrid, r, c, 1)) {
+        omokGameOver = true;
+        st.className = 'omok-status-banner status-win';
+        st.textContent = '🎉 오목 완성! 당신이 승리했습니다!';
+        playChime();
+        return;
+    }
+    omokTurn = 2;
+    st.textContent = '🤖 AI가 수를 계산하고 있습니다...';
+    setTimeout(makeOmokAiMove, 200);
+}
+
+function scoreOmokPoint(r, c, color) {
+    const dirs = [[0,1],[1,0],[1,1],[1,-1]];
+    let total = 0;
+    for (const [dr, dc] of dirs) {
+        let count = 1;
+        let openEnds = 0;
+        let step = 1;
+        while (step < 5) {
+            const nr = r + dr * step, nc = c + dc * step;
+            if (nr < 0 || nr >= OMOK_SIZE || nc < 0 || nc >= OMOK_SIZE) break;
+            if (omokGrid[nr][nc] === color) count++;
+            else { if (omokGrid[nr][nc] === 0) openEnds++; break; }
+            step++;
+        }
+        step = 1;
+        while (step < 5) {
+            const nr = r - dr * step, nc = c - dc * step;
+            if (nr < 0 || nr >= OMOK_SIZE || nc < 0 || nc >= OMOK_SIZE) break;
+            if (omokGrid[nr][nc] === color) count++;
+            else { if (omokGrid[nr][nc] === 0) openEnds++; break; }
+            step++;
+        }
+        if (count >= 5) total += 100000;
+        else if (count === 4 && openEnds === 2) total += 15000;
+        else if (count === 4 && openEnds === 1) total += 3500;
+        else if (count === 3 && openEnds === 2) total += 2200;
+        else if (count === 3 && openEnds === 1) total += 300;
+        else if (count === 2 && openEnds === 2) total += 180;
+    }
+    const centerDist = Math.abs(7 - r) + Math.abs(7 - c);
+    return total + (14 - centerDist);
+}
+
+function makeOmokAiMove() {
+    if (omokGameOver) return;
+    const lv = parseInt(document.getElementById('omokLevel').value || '3', 10);
+    let bestR = 7, bestC = 7, bestScore = -1;
+
+    for (let r = 0; r < OMOK_SIZE; r++) {
+        for (let c = 0; c < OMOK_SIZE; c++) {
+            if (omokGrid[r][c] !== 0) continue;
+            const attack = scoreOmokPoint(r, c, 2);
+            const defend = scoreOmokPoint(r, c, 1);
+            const defenseWeight = lv >= 3 ? 1.15 : 0.85;
+            const noise = lv === 1 ? Math.random() * 400 : (lv === 2 ? Math.random() * 120 : 0);
+            const score = Math.max(attack * 1.1, defend * defenseWeight) + attack * 0.25 + noise;
+            if (score > bestScore) {
+                bestScore = score;
+                bestR = r;
+                bestC = c;
+            }
+        }
+    }
+
+    omokGrid[bestR][bestC] = 2;
+    omokHistory.push({ r: bestR, c: bestC, color: 2 });
+    renderOmokBoard();
+
+    const st = document.getElementById('omokStatus');
+    if (checkOmokWin(omokGrid, bestR, bestC, 2)) {
+        omokGameOver = true;
+        st.className = 'omok-status-banner status-lose';
+        st.textContent = '🤖 AI가 5목을 완성해 승리했습니다!';
+        return;
+    }
+    omokTurn = 1;
+    st.className = 'omok-status-banner';
+    st.textContent = '🧑 당신 차례입니다 (흑돌)';
+}
+
+// ============================================================================
+// 🎮 실시간 온라인 대결 로비 (Firebase 연동 오목 대결)
+// ============================================================================
+let onlineRoomRef = null;
+let onlineGrid = Array.from({ length: OMOK_SIZE }, () => Array(OMOK_SIZE).fill(0));
+let onlineLastMove = null;
+
+function openOnlineBattleLobby() {
+    openModal('onlineMatchModal');
+    renderOnlineOmokBoard();
+}
+
+function renderOnlineOmokBoard() {
+    const boardEl = document.getElementById('onlineOmokBoard');
+    if (!boardEl) return;
+    boardEl.innerHTML = '';
+    const stars = [[3,3],[3,11],[7,7],[11,3],[11,11]];
+    for (let r = 0; r < OMOK_SIZE; r++) {
+        for (let c = 0; c < OMOK_SIZE; c++) {
+            const cell = document.createElement('div');
+            cell.className = 'omok-cell';
+            if (stars.some(([sr, sc]) => sr === r && sc === c)) cell.classList.add('omok-star');
+            const val = onlineGrid[r][c];
+            if (val !== 0) {
+                const stone = document.createElement('div');
+                stone.className = 'omok-stone ' + (val === 1 ? 'black' : 'white');
+                if (onlineLastMove && onlineLastMove.r === r && onlineLastMove.c === c) {
+                    stone.classList.add('last-move');
+                }
+                cell.appendChild(stone);
+            }
+            cell.onclick = () => placeOnlineOmokStone(r, c);
+            boardEl.appendChild(cell);
+        }
+    }
+}
+
+function joinOnlineOmokRoom() {
+    const code = (document.getElementById('onlineRoomCodeInput').value || 'TEAM27').trim().toUpperCase();
+    const statusEl = document.getElementById('onlineRoomStatus');
+    if (!firebaseReady || !db) {
+        statusEl.textContent = `⚡ 로컬 대결 모드 활성화 (방 코드: ${code})`;
+        renderOnlineOmokBoard();
+        return;
+    }
+    if (onlineRoomRef) onlineRoomRef.off();
+    onlineRoomRef = db.ref('calendarShared/onlineOmok/' + code);
+    onlineRoomRef.on('value', snap => {
+        const data = snap.val();
+        if (!data || !data.moves) {
+            onlineGrid = Array.from({ length: OMOK_SIZE }, () => Array(OMOK_SIZE).fill(0));
+            onlineLastMove = null;
+            statusEl.textContent = `🟢 [${code}] 방 연결됨 · 첫 수를 두어 대결을 시작하세요!`;
+            renderOnlineOmokBoard();
+            return;
+        }
+        onlineGrid = Array.from({ length: OMOK_SIZE }, () => Array(OMOK_SIZE).fill(0));
+        data.moves.forEach(m => { onlineGrid[m.r][m.c] = m.color; });
+        onlineLastMove = data.moves[data.moves.length - 1] || null;
+        const nextTurn = (!onlineLastMove || onlineLastMove.color === 2) ? '⚫ 흑돌 차례' : '⚪ 백돌 차례';
+        statusEl.textContent = `🟢 [${code}] 실시간 동기화 중 · 총 ${data.moves.length}수 진행 (${nextTurn})`;
+        renderOnlineOmokBoard();
+    });
+}
+
+function placeOnlineOmokStone(r, c) {
+    if (onlineGrid[r][c] !== 0) return;
+    const role = document.getElementById('onlineRoleSelect').value;
+    const myColor = role === 'black' ? 1 : 2;
+    onlineGrid[r][c] = myColor;
+    onlineLastMove = { r, c, color: myColor };
+    renderOnlineOmokBoard();
+
+    if (onlineRoomRef) {
+        onlineRoomRef.once('value', snap => {
+            const data = snap.val() || {};
+            const moves = data.moves || [];
+            moves.push({ r, c, color: myColor });
+            onlineRoomRef.set({ moves, updatedAt: Date.now() });
+        });
+    }
+}
+
+function resetOnlineOmokRoom() {
+    onlineGrid = Array.from({ length: OMOK_SIZE }, () => Array(OMOK_SIZE).fill(0));
+    onlineLastMove = null;
+    renderOnlineOmokBoard();
+    if (onlineRoomRef) {
+        onlineRoomRef.set({ moves: [], updatedAt: Date.now() });
+    }
+    showNotifToast('🔄 온라인 대결 바둑판이 초기화되었어요!');
+}
 </script>
 </body>
 </html>
